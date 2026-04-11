@@ -1,0 +1,28 @@
+# Rust build artifacts
+**/target/
+
+# Tauri build
+**/dist/
+**/.next/
+**/node_modules/
+
+# Flutter build
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/pubspec.lock
+
+# Environment & secrets
+.env
+.env.local
+*.pem
+*.key
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
