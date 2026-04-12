@@ -16,7 +16,7 @@ function App() {
   
   // Thông tin cấu hình ghép nối
   const deviceConfig = {
-    deviceId: "personal_pc_1",
+    deviceId: import.meta.env.VITE_DEVICE_ID || "unknown_pc",
     url: "http://127.0.0.1:3000" // IP của VPS / Cloud Relay sau này
   };
 

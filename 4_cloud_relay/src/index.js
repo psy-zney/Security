@@ -70,7 +70,11 @@ io.on('connection', (socket) => {
     const { type, deviceId } = data || {};
     socket.clientType = type || 'unknown';
     // Mặc định kết nối 1-1, bạn có thể tự quy định 1 chuẩn ID cho PC của bạn (vd: 'My_PC_001')
-    socket.deviceId = deviceId || 'personal_pc_1';
+    socket.deviceId = deviceId;
+    if (!socket.deviceId) {
+       console.log(`[!] Cảnh báo: Client ${socket.id} kết nối không có deviceId.`);
+       return socket.disconnect();
+    }
     
     // Đưa kết nối vào một "phòng" riêng cho thiết bị đó, để dễ gửi lệnh 1-1
     socket.join(socket.deviceId);

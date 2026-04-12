@@ -25,6 +25,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 use reqwest;
+use std::sync::Arc;
 use dotenvy::dotenv;
 
 const SERVICE_NAME: &str = "MySecureService"; // Tên đồng nhất
@@ -133,6 +134,9 @@ fn start_socketio_client() {
     
     std::thread::spawn(|| {
         let secret_key = std::env::var("SECRET_KEY").expect("SECRET_KEY must be set in .env file");
+        let device_id = Arc::new(std::env::var("DEVICE_ID").unwrap_or_else(|_| "personal_pc_1".to_string()));
+        let device_id_for_on = Arc::clone(&device_id);
+        let device_id_for_reg = Arc::clone(&device_id);
         // 1. Tạo Timestamp
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis().to_string();
         
@@ -147,7 +151,7 @@ fn start_socketio_client() {
         if let Ok(client) = ClientBuilder::new(url)
             .namespace("/")
             .on("error", |err, _| println!("Socket Error: {:#?}", err))
-            .on("execute_command", |payload: Payload, client| {
+            .on("execute_command", move |payload: Payload, client| {
                 if let Payload::Text(data) = payload {
                     if let Some(val) = data.first() {
                         let cmd = val["command"].as_str().unwrap_or("");
@@ -158,10 +162,11 @@ fn start_socketio_client() {
                             
                             if num_cameras > 0 {
                                 println!("Có Camera -> Chụp luôn");
-                                let _ = client.emit("status_update", json!({"deviceId": "personal_pc_1", "status": "Camera Captured!"}));
+                                let _ = client.emit("status_update", json!({"deviceId": *device_id_for_on, "status": "Camera Captured!"}));
                             } else {
                                 println!("Camera E-Shutter đang bị đóng! Khởi động vòng rình rập...");
                                 let client_clone = client.clone();
+                                let d_id = Arc::clone(&device_id_for_on);
                                 std::thread::spawn(move || {
                                     loop {
                                         std::thread::sleep(Duration::from_secs(3));
@@ -169,7 +174,7 @@ fn start_socketio_client() {
                                         if count > 0 {
                                             println!("💥 Tên trộm vừa gạt mở Camera! Chớp ảnh gửi về!");
                                             let _ = client_clone.emit("status_update", json!({
-                                                "deviceId": "personal_pc_1",
+                                                "deviceId": *d_id,
                                                 "status": "ALARM: Đã mai phục thành công! Camera vừa bật lên."
                                             }));
                                             break;
@@ -194,7 +199,7 @@ fn start_socketio_client() {
             // 4. Góp mặt điểm danh với Server kèm Vị trí
             let reg_data = json!({
                 "type": "pc_service",
-                "deviceId": "personal_pc_1",
+                "deviceId": *device_id_for_reg,
                 "location": location
             });
             let _ = client.emit("register", reg_data);
