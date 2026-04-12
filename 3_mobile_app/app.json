@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Security Command",
+    "slug": "security-command",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0f"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.zney.security",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Used to scan QR code for device pairing.",
+        "NSFaceIDUsageDescription": "Used for secure authentication."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a0f"
+      },
+      "package": "com.zney.security"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-camera",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#6C63FF"
+        }
+      ]
+    ],
+    "scheme": "security-command",
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
