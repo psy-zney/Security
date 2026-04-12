@@ -11,11 +11,11 @@ fn main() {
     log::info!("[Watchdog] Khởi động Watchdog Service...");
 
     let mut sys = System::new_with_specifics(
-        RefreshKind::new().with_processes(ProcessRefreshKind::everything())
+        RefreshKind::nothing().with_processes(ProcessRefreshKind::everything())
     );
 
     loop {
-        sys.refresh_processes(sysinfo::ProcessesToUpdate::All);
+        sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
 
         let mut is_running = false;
         

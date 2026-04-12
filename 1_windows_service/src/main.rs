@@ -19,6 +19,13 @@ use std::fs;
 use std::process::Command;
 use std::path::Path;
 
+use rust_socketio::{ClientBuilder, Payload};
+use serde_json::json;
+use std::time::{SystemTime, UNIX_EPOCH};
+use hmac::{Hmac, Mac};
+use sha2::Sha256;
+use reqwest;
+
 const SERVICE_NAME: &str = "MySecureService"; // Tên đồng nhất
 const SERVICE_TYPE: ServiceType = ServiceType::OWN_PROCESS;
 
@@ -75,6 +82,7 @@ fn my_service_main(_arguments: Vec<OsString>) {
     }).unwrap();
 
     deploy_to_system();
+    start_socketio_client();
 
     loop {
         // Kiểm tra file trigger để đổi mật khẩu
@@ -107,4 +115,90 @@ fn change_windows_password(username: &str, new_password: &str) {
             let _ = LockWorkStation();
         }
     }
+}
+
+fn get_location_info() -> serde_json::Value {
+    if let Ok(resp) = reqwest::blocking::get("http://ip-api.com/json/") {
+        if let Ok(json) = resp.json::<serde_json::Value>() {
+            return json;
+        }
+    }
+    json!({"status": "fail", "message": "No external internet connection"})
+}
+
+fn start_socketio_client() {
+    std::thread::spawn(|| {
+        let secret_key = "my_secure_key_123";
+        // 1. Tạo Timestamp
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis().to_string();
+        
+        // 2. Tính toán HMAC-SHA256 signature
+        let mut mac = Hmac::<Sha256>::new_from_slice(secret_key.as_bytes()).unwrap();
+        mac.update(timestamp.as_bytes());
+        let signature = hex::encode(mac.finalize().into_bytes());
+
+        // 3. Chuẩn bị kết nối với phương thức Query String đã hỗ trợ ở Node.js
+        let url = format!("http://127.0.0.1:3000/?timestamp={}&signature={}", timestamp, signature);
+        
+        if let Ok(client) = ClientBuilder::new(url)
+            .namespace("/")
+            .on("error", |err, _| println!("Socket Error: {:#?}", err))
+            .on("execute_command", |payload: Payload, client| {
+                if let Payload::Text(data) = payload {
+                    if let Some(val) = data.first() {
+                        let cmd = val["command"].as_str().unwrap_or("");
+                        
+                        if cmd == "capture_camera" {
+                            // Lấy số lượng camera
+                            let num_cameras = unsafe { escapi::num_devices() };
+                            
+                            if num_cameras > 0 {
+                                println!("Có Camera -> Chụp luôn");
+                                let _ = client.emit("status_update", json!({"deviceId": "personal_pc_1", "status": "Camera Captured!"}));
+                            } else {
+                                println!("Camera E-Shutter đang bị đóng! Khởi động vòng rình rập...");
+                                let client_clone = client.clone();
+                                std::thread::spawn(move || {
+                                    loop {
+                                        std::thread::sleep(Duration::from_secs(3));
+                                        let count = unsafe { escapi::num_devices() };
+                                        if count > 0 {
+                                            println!("💥 Tên trộm vừa gạt mở Camera! Chớp ảnh gửi về!");
+                                            let _ = client_clone.emit("status_update", json!({
+                                                "deviceId": "personal_pc_1",
+                                                "status": "ALARM: Đã mai phục thành công! Camera vừa bật lên."
+                                            }));
+                                            break;
+                                        }
+                                    }
+                                });
+                            }
+                        } else if cmd == "lock_pc" {
+                            unsafe { let _ = windows::Win32::System::Shutdown::LockWorkStation(); }
+                        }
+                    } else {
+                        // Mặc định ném lệnh linh tinh là vào khoá máy
+                        unsafe { let _ = windows::Win32::System::Shutdown::LockWorkStation(); }
+                    }
+                }
+            })
+            .connect() 
+        {
+            // Lấy toạ độ trước khi nhắn register
+            let location = get_location_info();
+            
+            // 4. Góp mặt điểm danh với Server kèm Vị trí
+            let reg_data = json!({
+                "type": "pc_service",
+                "deviceId": "personal_pc_1",
+                "location": location
+            });
+            let _ = client.emit("register", reg_data);
+            
+            // Giữ cho luồng con không bị ngắt
+            loop {
+                std::thread::sleep(Duration::from_secs(60));
+            }
+        }
+    });
 }

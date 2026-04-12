@@ -1,96 +1,118 @@
-import { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { useState } from "react";
+import QRCode from "react-qr-code";
+import CryptoJS from "crypto-js";
 import "./App.css";
 
+// Thay mặt cho DB
+const ADMIN_PASSWORD = "admin123";
+const PAIRING_SECRET_KEY = "my_secure_key_123";
+
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-  const [status, setStatus] = useState("Connected");
-  const [logs, setLogs] = useState<string[]>([
-    "System Initialized",
-    "Waiting for commands..."
-  ]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [loginError, setLoginError] = useState("");
+  
+  // Thông tin cấu hình ghép nối
+  const deviceConfig = {
+    deviceId: "personal_pc_1",
+    url: "http://127.0.0.1:3000" // IP của VPS / Cloud Relay sau này
+  };
 
-  function addLog(msg: string) {
-    const timestamp = new Date().toLocaleTimeString();
-    setLogs((prev) => [`[${timestamp}] ${msg}`, ...prev].slice(0, 5));
-  }
-
-  async function greet() {
-    setGreetMsg(await invoke("greet", { name }));
-  }
-
-  async function handleLockPC() {
-    addLog("Sending Lock PC request...");
-    try {
-      const response: string = await invoke("trigger_lock");
-      addLog(`✓ ${response}`);
-      setStatus("Locked Triggered");
-    } catch (error) {
-      addLog(`❌ Error: ${error}`);
-      setStatus("Error writing file");
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      setLoginError("");
+    } else {
+      setLoginError("Mật khẩu không đúng!");
+      setTimeout(() => setLoginError(""), 3000);
     }
+  };
+
+  const generateQRCodePayload = () => {
+    // 1. Tạo chuỗi JSON gốc
+    const rawData = JSON.stringify({
+      deviceId: deviceConfig.deviceId,
+      url: deviceConfig.url,
+      secret: PAIRING_SECRET_KEY,
+      timestamp: Date.now()
+    });
+
+    // 2. Mã hoá AES an toàn. 
+    // Trong thực tế, bạn sẽ dùng chung cặp chìa khoá mã hoá cố định (hoặc cấp riêng) giữa App iOS và PC.
+    // Ở đây ta mô phỏng AES với 1 pass cố định "MOBILE_APP_DECRYPT_KEY"
+    const encryptedData = CryptoJS.AES.encrypt(rawData, "MOBILE_APP_DECRYPT_KEY").toString();
+    
+    // Gửi ra ngoài dạng chuẩn QR JSON
+    return JSON.stringify({
+      type: "SECURITY_PAIR",
+      payload: encryptedData
+    });
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="container login-container">
+        <div className="card login-card">
+          <div className="login-header">
+            <h2>Admin Login</h2>
+            <p className="subtitle">Security Core Dashboard</p>
+          </div>
+          
+          <form onSubmit={handleLogin} className="login-form">
+            <div className="input-group">
+              <input 
+                type="password" 
+                placeholder="Nhập mật khẩu..." 
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                autoFocus
+              />
+            </div>
+            {loginError && <p className="error-text">{loginError}</p>}
+            <button type="submit" className="btn primary w-full">Đăng nhập</button>
+          </form>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="container">
+    <div className="container dashboard-container">
       <div className="dashboard">
         <header className="header">
-          <h1>Security Core UI</h1>
+          <h1>Security Pairing</h1>
           <div className="status-indicator">
-            <span className={`dot ${status === "Error writing file" ? "error" : ""}`}></span>
-            {status}
+            <span className="dot"></span>
+            Authenticated
           </div>
         </header>
 
-        <section className="control-panel">
-          <div className="card features">
-            <h2>Command Center</h2>
-            <p className="subtitle">Mô phỏng chức năng của Background Service (Yêu cầu quyền Administrator)</p>
+        <section className="qr-section">
+          <div className="card qr-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <h2>Ghép nối Thiết bị Di động</h2>
+            <p className="subtitle" style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              Dùng Ứng dụng Security iOS để quét mã QR bên dưới.<br/>
+              Mã có chứa mật chương AES bảo mật kết nối thiết bị của bạn.
+            </p>
             
-            <div className="actions">
-              <button className="btn danger flex items-center justify-center gap-2" onClick={handleLockPC}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                Thử nghiệm Khóa PC & Đổi mật khẩu
-              </button>
-              
-              <button className="btn secondary" onClick={() => addLog("Tính năng đang phát triển...")}>
-                Cập nhật cấu hình mạng
-              </button>
-              <button className="btn secondary" onClick={() => addLog("Tính năng đang phát triển...")}>
-                Thay đổi trạng thái USB
-              </button>
+            <div className="qr-wrapper">
+              <QRCode 
+                value={generateQRCodePayload()} 
+                size={220}
+                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                viewBox={`0 0 256 256`}
+                level="Q"
+                bgColor="#ffffff"
+                fgColor="#0f172a"
+              />
+            </div>
+
+            <div className="device-info mt-4">
+              <p><strong>Device ID:</strong> <span>{deviceConfig.deviceId}</span></p>
+              <p><strong>Relay Server:</strong> <span>{deviceConfig.url}</span></p>
             </div>
           </div>
-
-          <div className="card log-viewer">
-            <h2>System Logs</h2>
-            <ul className="log-list">
-              {logs.map((log, i) => (
-                <li key={i}>{log}</li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        {/* Tauri test block */}
-        <section className="card test-backend">
-          <h2>Giao tiếp Backend Rust</h2>
-          <form
-            className="row"
-            onSubmit={(e) => {
-              e.preventDefault();
-              greet();
-            }}
-          >
-            <input
-              id="greet-input"
-              onChange={(e) => setName(e.currentTarget.value)}
-              placeholder="Nhập tên..."
-            />
-            <button className="btn primary" type="submit">Ping</button>
-          </form>
-          <p>{greetMsg}</p>
         </section>
       </div>
     </div>
