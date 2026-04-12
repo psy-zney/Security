@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,16 +10,17 @@ import {
 import { router } from 'expo-router';
 import { loadPairingData } from '../lib/storage';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
   const [checking, setChecking] = useState(true);
-  const glowAnim = new Animated.Value(0);
-  const fadeAnim = new Animated.Value(0);
-  const slideAnim = new Animated.Value(40);
+  const [hasPairing, setHasPairing] = useState(false);
+  const glowAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(40)).current;
 
   useEffect(() => {
-    // Pulsing glow animation
+    // Animations
     Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
@@ -27,39 +28,42 @@ export default function WelcomeScreen() {
       ])
     ).start();
 
-    // Fade in
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
     ]).start();
 
-    // Kiểm tra xem đã pairing chưa
-    loadPairingData().then((data) => {
-      if (data) {
-        // Đã pairing trước đó -> vào Dashboard luôn
-        router.replace('/dashboard');
-      } else {
-        setChecking(false);
-      }
-    });
+    // Kiểm tra pairing sau khi UI đã render
+    const timer = setTimeout(() => {
+      loadPairingData()
+        .then((data) => {
+          if (data?.deviceId) {
+            setHasPairing(true);
+          }
+          setChecking(false);
+        })
+        .catch(() => {
+          setChecking(false);
+        });
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, []);
 
   if (checking) {
     return (
       <View style={styles.container}>
-        <Text style={styles.loadingText}>Đang kiểm tra kết nối...</Text>
+        <Text style={styles.loadingText}>Đang khởi động...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* Background orbs */}
       <Animated.View style={[styles.orb, styles.orbTopLeft, { opacity: glowAnim }]} />
       <Animated.View style={[styles.orb, styles.orbBottomRight, { opacity: glowAnim }]} />
 
       <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-        {/* Shield Icon */}
         <View style={styles.shieldContainer}>
           <Animated.View style={[styles.shieldGlow, { opacity: glowAnim }]} />
           <Text style={styles.shieldIcon}>🛡️</Text>
@@ -71,26 +75,38 @@ export default function WelcomeScreen() {
           Thiết lập kết nối an toàn với Laptop của bạn bằng cách quét mã QR từ ứng dụng quản trị trên PC.
         </Text>
 
-        {/* Feature badges */}
         <View style={styles.badges}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>🔐 AES-256</Text>
-          </View>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>⚡ Realtime</Text>
-          </View>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>📡 Offline Queue</Text>
-          </View>
+          <View style={styles.badge}><Text style={styles.badgeText}>🔐 AES-256</Text></View>
+          <View style={styles.badge}><Text style={styles.badgeText}>⚡ Realtime</Text></View>
+          <View style={styles.badge}><Text style={styles.badgeText}>📡 Offline Queue</Text></View>
         </View>
 
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={() => router.push('/scan')}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.primaryButtonText}>📷  Quét mã QR ghép nối</Text>
-        </TouchableOpacity>
+        {hasPairing ? (
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => router.push('/dashboard')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.primaryButtonText}>▶️  Vào trang điều khiển</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => router.push('/scan')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.primaryButtonText}>📷  Quét mã QR ghép nối</Text>
+          </TouchableOpacity>
+        )}
+
+        {hasPairing && (
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => router.push('/scan')}
+          >
+            <Text style={styles.secondaryButtonText}>Ghép nối thiết bị mới</Text>
+          </TouchableOpacity>
+        )}
       </Animated.View>
     </View>
   );
@@ -107,7 +123,6 @@ const styles = StyleSheet.create({
   loadingText: {
     color: '#888',
     fontSize: 16,
-    fontFamily: 'System',
   },
   orb: {
     position: 'absolute',
@@ -147,10 +162,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#6C63FF',
     opacity: 0.3,
   },
-  shieldIcon: {
-    fontSize: 56,
-    zIndex: 1,
-  },
+  shieldIcon: { fontSize: 56, zIndex: 1 },
   title: {
     fontSize: 32,
     fontWeight: '800',
@@ -189,11 +201,7 @@ const styles = StyleSheet.create({
     borderColor: '#2a2a3a',
     backgroundColor: '#111120',
   },
-  badgeText: {
-    color: '#aaa',
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  badgeText: { color: '#aaa', fontSize: 12, fontWeight: '600' },
   primaryButton: {
     width: '100%',
     paddingVertical: 18,
@@ -205,11 +213,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 20,
     elevation: 10,
+    marginBottom: 12,
   },
   primaryButtonText: {
     color: '#fff',
     fontSize: 17,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  secondaryButton: {
+    paddingVertical: 10,
+  },
+  secondaryButtonText: {
+    color: '#555',
+    fontSize: 14,
+    textDecorationLine: 'underline',
   },
 });
