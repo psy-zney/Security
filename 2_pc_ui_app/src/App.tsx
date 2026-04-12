@@ -28,7 +28,7 @@ function App() {
   // Thông tin cấu hình ghép nối
   const deviceConfig = {
     deviceId: machineId,
-    url: "http://127.0.0.1:3000" // IP của VPS / Cloud Relay sau này
+    url: import.meta.env.VITE_RELAY_URL || "http://192.168.88.62:3000" // Cần dùng IP LAN thay vì 127.0.0.1
   };
 
   const handleLogin = (e: React.FormEvent) => {
