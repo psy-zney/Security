@@ -47,6 +47,19 @@ fn read_mock_image(path: &str) -> Result<String, String> {
     std::fs::read_to_string(path).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn get_machine_id() -> String {
+    use winreg::enums::HKEY_LOCAL_MACHINE;
+    use winreg::RegKey;
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    if let Ok(subkey) = hklm.open_subkey("SOFTWARE\\Microsoft\\Cryptography") {
+        if let Ok(guid) = subkey.get_value::<String, _>("MachineGuid") {
+            return guid;
+        }
+    }
+    "unknown_device".to_string()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -57,7 +70,8 @@ pub fn run() {
             trigger_change_password, 
             trigger_lock_usb, 
             trigger_capture_camera,
-            read_mock_image
+            read_mock_image,
+            get_machine_id
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

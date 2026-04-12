@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import QRCode from "react-qr-code";
 import CryptoJS from "crypto-js";
+import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 
-// Thay mặt cho DB
 // Thay mặt cho DB - Đọc từ tệp .env (Vite yêu cầu tiền tố VITE_)
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 const PAIRING_SECRET_KEY = import.meta.env.VITE_PAIRING_SECRET_KEY;
@@ -13,10 +13,21 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [machineId, setMachineId] = useState("fetching...");
   
+  // Tự động lấy Machine GUID từ hệ thống khi mở App
+  useEffect(() => {
+    invoke<string>("get_machine_id")
+      .then((id) => setMachineId(id))
+      .catch((err) => {
+        console.error("Failed to get machine id:", err);
+        setMachineId(import.meta.env.VITE_DEVICE_ID || "unknown_pc");
+      });
+  }, []);
+
   // Thông tin cấu hình ghép nối
   const deviceConfig = {
-    deviceId: import.meta.env.VITE_DEVICE_ID || "unknown_pc",
+    deviceId: machineId,
     url: "http://127.0.0.1:3000" // IP của VPS / Cloud Relay sau này
   };
 

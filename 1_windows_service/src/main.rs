@@ -27,6 +27,8 @@ use sha2::Sha256;
 use reqwest;
 use std::sync::Arc;
 use dotenvy::dotenv;
+use winreg::enums::*;
+use winreg::RegKey;
 
 const SERVICE_NAME: &str = "MySecureService"; // Tên đồng nhất
 const SERVICE_TYPE: ServiceType = ServiceType::OWN_PROCESS;
@@ -119,6 +121,17 @@ fn change_windows_password(username: &str, new_password: &str) {
     }
 }
 
+fn get_machine_id() -> String {
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    if let Ok(subkey) = hklm.open_subkey("SOFTWARE\\Microsoft\\Cryptography") {
+        if let Ok(guid) = subkey.get_value::<String, _>("MachineGuid") {
+            return guid;
+        }
+    }
+    // Fallback nếu lỗi registry
+    std::env::var("COMPUTERNAME").unwrap_or_else(|_| "unknown_pc".to_string())
+}
+
 fn get_location_info() -> serde_json::Value {
     if let Ok(resp) = reqwest::blocking::get("http://ip-api.com/json/") {
         if let Ok(json) = resp.json::<serde_json::Value>() {
@@ -134,7 +147,10 @@ fn start_socketio_client() {
     
     std::thread::spawn(|| {
         let secret_key = std::env::var("SECRET_KEY").expect("SECRET_KEY must be set in .env file");
-        let device_id = Arc::new(std::env::var("DEVICE_ID").unwrap_or_else(|_| "personal_pc_1".to_string()));
+        
+        // Ưu tiên tẹo ID duy nhất của máy tính (Machine GUID)
+        let device_id = Arc::new(get_machine_id());
+        
         let device_id_for_on = Arc::clone(&device_id);
         let device_id_for_reg = Arc::clone(&device_id);
         // 1. Tạo Timestamp
