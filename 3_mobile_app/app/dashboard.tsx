@@ -25,6 +25,7 @@ interface LogEntry {
 
 interface LocationInfo {
   ip?: string;
+  query?: string;
   city?: string;
   regionName?: string;
   country?: string;
@@ -210,7 +211,7 @@ export default function DashboardScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>📍 Vị trí Laptop</Text>
             <View style={styles.locationGrid}>
-              {location.ip && <LocationRow label="Public IP" value={location.ip} />}
+              {(location.ip || location.query) && <LocationRow label="Public IP" value={location.ip || location.query || ''} />}
               {location.ssid && <LocationRow label="Wi-Fi (SSID)" value={location.ssid} highlight />}
               {location.bssid && <LocationRow label="BSSID" value={location.bssid} />}
               {location.city && <LocationRow label="Thành phố" value={`${location.city}, ${location.country}`} />}
@@ -258,7 +259,34 @@ export default function DashboardScreen() {
             <Text style={styles.cmdIcon}>📡</Text>
             <View style={styles.cmdTextContainer}>
               <Text style={styles.cmdTitle}>Lấy Vị Trí Mới</Text>
-              <Text style={styles.cmdSubtitle}>Cập nhật IP & SSID thực tế</Text>
+              <Text style={styles.cmdSubtitle}>Cập nhật lại IP truy cập hiện tại</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.commandBtn, styles.passwordBtn]}
+            onPress={() => Alert.prompt(
+              '🔑 Đổi mật khẩu PC',
+              'Nhập mật khẩu mới cho tài khoản Admin trên Windows:',
+              [
+                { text: 'Hủy', style: 'cancel' },
+                {
+                  text: 'Đổi Mật Khẩu',
+                  onPress: (password) => {
+                    if (password) {
+                      sendCommand('change_password', { password });
+                      // Hàm sendCommand này tôi gọi trực tiếp để truyền được payload
+                    }
+                  }
+                }
+              ]
+            )}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cmdIcon}>🔑</Text>
+            <View style={styles.cmdTextContainer}>
+              <Text style={styles.cmdTitle}>Đổi Mật Khẩu PC</Text>
+              <Text style={styles.cmdSubtitle}>Khoá máy với mật khẩu mới</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -417,6 +445,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(46,213,115,0.12)',
     borderWidth: 1,
     borderColor: 'rgba(46,213,115,0.3)',
+  },
+  passwordBtn: {
+    backgroundColor: 'rgba(255,165,2,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,165,2,0.4)',
   },
   cmdIcon: { fontSize: 28 },
   cmdTextContainer: { flex: 1 },

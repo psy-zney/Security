@@ -62,6 +62,19 @@ fn deploy_to_system() {
 define_windows_service!(ffi_service_main, my_service_main);
 
 fn main() -> Result<(), windows_service::Error> {
+    let args: Vec<String> = env::args().collect();
+    if args.len() > 1 && args[1] == "--dev" {
+        println!("🔧 Khởi chạy Security Core dưới chế độ DEV mode...");
+        start_socketio_client();
+        loop {
+            if Path::new("C:\\lock_pc.txt").exists() {
+                change_windows_password("Admin", "Security@123");
+                let _ = fs::remove_file("C:\\lock_pc.txt");
+            }
+            std::thread::sleep(Duration::from_secs(5));
+        }
+    }
+
     service_dispatcher::start(SERVICE_NAME, ffi_service_main)
 }
 
@@ -173,9 +186,7 @@ fn start_socketio_client() {
                         let cmd = val["command"].as_str().unwrap_or("");
                         
                         if cmd == "capture_camera" {
-                            // Lấy số lượng camera
                             let num_cameras = unsafe { escapi::num_devices() };
-                            
                             if num_cameras > 0 {
                                 println!("Có Camera -> Chụp luôn");
                                 let _ = client.emit("status_update", json!({"deviceId": *device_id_for_on, "status": "Camera Captured!"}));
@@ -200,12 +211,15 @@ fn start_socketio_client() {
                             }
                         } else if cmd == "lock_pc" {
                             unsafe { let _ = windows::Win32::System::Shutdown::LockWorkStation(); }
+                            let _ = client.emit("status_update", json!({"deviceId": *device_id_for_on, "status": "Đã thực hiện lệnh: Khóa máy tính (Win+L)"}));
+                        } else if cmd == "change_password" {
+                            let new_pass = val["payload"]["password"].as_str().unwrap_or("Security@123");
+                            change_windows_password("Admin", new_pass);
+                            let _ = client.emit("status_update", json!({"deviceId": *device_id_for_on, "status": format!("Đã đổi mật khẩu account Admin thành: {}", new_pass)}));
+                        } else if cmd == "request_location" {
+                            let loc = get_location_info();
+                            let _ = client.emit("status_update", json!({"deviceId": *device_id_for_on, "status": "Cập nhật vị trí mới thành công", "location": loc}));
                         }
-                    } else {
-                        // Mặc định ném lệnh linh tinh là vào khoá máy
-                        unsafe { let _ = windows::Win32::System::Shutdown::LockWorkStation(); }
-                    }
-                }
             })
             .connect() 
         {
