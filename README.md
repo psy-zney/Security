@@ -1,25 +1,28 @@
-# 🛡️ Security Core Project (Laptop Anti-Theft)
+# 🛡️ Security Core Project (Advanced Anti-Theft System)
 
-Dự án này là một hệ sinh thái bảo mật đa nền tảng, được thiết kế đặc biệt để bảo vệ và giám sát Laptop cá nhân (như dòng Lenovo LOQ). Hệ thống cho phép người dùng điều khiển thiết bị từ bất cứ đâu, với khả năng xuyên thủng các lớp ngụy trang và bảo mật dữ liệu tuyệt đối.
+Dự án Security Core là một hệ sinh thái bảo mật đa nền tảng, được thiết kế để cung cấp khả năng giám sát, can thiệp và bảo vệ thiết bị Windows từ xa. Hệ thống tập trung vào tính toàn vẹn của dữ liệu, khả năng định vị thực tế và cơ chế thực thi lệnh ngoại tuyến.
 
-## 🎯 Mục đích dự án
-Hệ thống ra đời với sứ mệnh **"Không bao giờ để mất Laptop lần thứ hai"**. 
-Thay vì chỉ dựa vào các phần mềm theo dõi vị trí thông thường dễ bị vô hiệu hóa, Security Core Project đi sâu vào can thiệp hệ thống ở mức kernel (Windows Service) và sử dụng cơ chế liên lạc "Du kích" (Offline Queue) để đảm bảo lệnh luôn được thực thi ngay khi máy có kết nối Internet trở lại.
+## 🎯 Mục tiêu dự án
+Xây dựng một giải pháp an ninh chủ động cho các thiết bị di động (Laptop), cho phép người sở hữu duy trì quyền kiểm soát tuyệt đối ngay cả khi thiết bị đã bị chiếm quyền truy cập vật lý. Hệ thống tập trung vào việc vượt qua các lớp ngụy trang mạng và đảm bảo khả năng phản ứng tức thì thông qua mạng lưới Relay trung gian.
 
-## 🦾 Khả năng cốt lõi (Capabilities)
-- **Điều khiển 1-1:** Khóa máy, khởi động lại, hoặc thực thi lệnh OS ngay từ điện thoại.
-- **Phá bỏ ngụy trang VPN:** Lấy dữ liệu hạ tầng mạng vật lý (SSID/BSSID) để định vị thực chất của Laptop.
-- **Mai phục Camera:** Chế độ rình rập tự động - Chụp ảnh ngay khi nắp che Camera vật lý được mở ra.
-- **Bảo mật tuyệt đối:** Giao thức HMAC-SHA256 chống Replay-attack và mã hóa AES-256 cho việc ghép nối thiết bị (QR Pairing).
-- **Hàng đợi ngoại tuyến:** Lệnh từ Mobile luôn được lưu trữ trên Cloud và tự động nã xuống PC ngay khi PC sáng đèn.
+## 🦾 Khả năng cốt lõi (Core Capabilities)
+- **Điều khiển thời gian thực:** Quản lý thiết bị qua giao thức WebSockets bảo mật.
+- **Định vị hạ tầng vật lý:** Sử dụng kỹ thuật quét SSID/BSSID để xác định vị trí thực chất của thiết bị, loại bỏ sự sai lệch do VPN hoặc Proxy gây ra.
+- **Cơ chế Ambush Camera:** Hệ thống rình rập tự động, kích hoạt chụp ảnh ghi hình ngay khi camera phần cứng được kích hoạt.
+- **Xác thực đa tầng:** Sử dụng mã hóa AES-256 cho việc ghép nối thiết bị và HMAC-SHA256 cho việc truyền tin.
+- **Hàng đợi lệnh (Offline Queue):** Đảm bảo tính sẵn sàng của lệnh điều khiển bằng cơ chế lưu trữ đệm tại Relay Server.
 
-## 📂 Cấu trúc dự án
-Tài liệu hướng dẫn chi tiết cho từng thành phần (Vui lòng nhấn vào liên kết bên dưới):
+## 📂 Danh mục các Module
+Hệ thống được phân rã thành các thành phần chuyên biệt:
 
-1.  [**`1_windows_service/`**](file:///c:/Users/meoic/Desktop/Security/1_windows_service/README.md): Lõi thực thi bằng Rust (Chạy quyền SYSTEM).
-2.  [**`2_pc_ui_app/`**](file:///c:/Users/meoic/Desktop/Security/2_pc_ui_app/README.md): Giao diện quản trị & Trạm sinh mã QR Pairing (Tauri + React).
-3.  [**`3_mobile_app/`**](file:///c:/Users/meoic/Desktop/Security/3_mobile_app/README.md): Ứng dụng điều khiển trên iPhone/Android (React Native).
-4.  [**`4_cloud_relay/`**](file:///c:/Users/meoic/Desktop/Security/4_cloud_relay/README.md): Máy chủ điều phối & Hàng đợi trung tâm (Node.js).
+1.  [**`1_windows_service/`**](1_windows_service/README.md): Lõi thực thi mức hệ thống bằng Rust (SYSTEM privileges).
+2.  [**`2_pc_ui_app/`**](2_pc_ui_app/README.md): Giao diện quản trị Desktop & Trạm sinh mã định danh (Tauri + React).
+3.  [**`3_mobile_app/`**](3_mobile_app/README.md): Ứng dụng điều khiển trung tâm (React Native).
+4.  [**`4_cloud_relay/`**](4_cloud_relay/README.md): Máy chủ điều phối lưu lượng & Hàng đợi lệnh (Node.js).
+
+## 🔐 Bảo mật
+- Toàn bộ các khóa bí mật (Secrets) được quản lý qua tệp môi trường `.env`.
+- Mã nguồn không chứa thông tin định danh hay thông tin đăng nhập gán cứng.
 
 ---
 **Author:** zney (lequangkhanh295@gmail.com)
