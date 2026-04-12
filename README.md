@@ -1,71 +1,25 @@
-# 🛡️ Hệ thống An ninh và Giám sát Từ xa (Security Core Project)
+# 🛡️ Security Core Project (Laptop Anti-Theft)
 
-Dự án này là hệ thống bảo mật đa nền tảng tập trung vào khả năng can thiệp, giám sát và bảo vệ Laptop (đặc biệt là chống trộm cho các dòng như Lenovo LOQ). Hệ thống sử dụng kiến trúc phân tán từ Service cấp thấp cho tới Cloud Relay bảo mật HMAC-SHA256.
+Dự án này là một hệ sinh thái bảo mật đa nền tảng, được thiết kế đặc biệt để bảo vệ và giám sát Laptop cá nhân (như dòng Lenovo LOQ). Hệ thống cho phép người dùng điều khiển thiết bị từ bất cứ đâu, với khả năng xuyên thủng các lớp ngụy trang và bảo mật dữ liệu tuyệt đối.
 
-## 📂 Kiến trúc Hệ thống & Tính năng Đã triển khai
+## 🎯 Mục đích dự án
+Hệ thống ra đời với sứ mệnh **"Không bao giờ để mất Laptop lần thứ hai"**. 
+Thay vì chỉ dựa vào các phần mềm theo dõi vị trí thông thường dễ bị vô hiệu hóa, Security Core Project đi sâu vào can thiệp hệ thống ở mức kernel (Windows Service) và sử dụng cơ chế liên lạc "Du kích" (Offline Queue) để đảm bảo lệnh luôn được thực thi ngay khi máy có kết nối Internet trở lại.
 
-### 1. `1_windows_service/` (Lõi Bảo mật & Định vị - Rust)
-- **Nhiệm vụ:** Chạy ngầm quyền **SYSTEM**, là "nằm vùng" thực hiện lệnh.
-- **Tính năng đặc biệt:**
-  - **Mã hóa HMAC-SHA256:** Tự động ký chữ ký số kèm Timestamp để xác thực với Server, chống Replay-Attack.
-  - **VPN-Buster Tracking:** Tự động quét BSSID/SSID Wifi thực tế để định vị vị trí Laptop bất chấp kẻ trộm dùng VPN che dấu IP.
-  - **Camera Ambush (Mai phục):** Nếu nắp che camera vật lý (E-Shutter) bị đóng, Service sẽ chạy vòng lặp rình rập và "cướp cò" chụp ảnh ngay giây đầu tiên kẻ trộm mở nắp camera.
-  - **Can thiệp OS:** Khóa máy (LockWorkStation), đổi mật khẩu cấp tốc.
+## 🦾 Khả năng cốt lõi (Capabilities)
+- **Điều khiển 1-1:** Khóa máy, khởi động lại, hoặc thực thi lệnh OS ngay từ điện thoại.
+- **Phá bỏ ngụy trang VPN:** Lấy dữ liệu hạ tầng mạng vật lý (SSID/BSSID) để định vị thực chất của Laptop.
+- **Mai phục Camera:** Chế độ rình rập tự động - Chụp ảnh ngay khi nắp che Camera vật lý được mở ra.
+- **Bảo mật tuyệt đối:** Giao thức HMAC-SHA256 chống Replay-attack và mã hóa AES-256 cho việc ghép nối thiết bị (QR Pairing).
+- **Hàng đợi ngoại tuyến:** Lệnh từ Mobile luôn được lưu trữ trên Cloud và tự động nã xuống PC ngay khi PC sáng đèn.
 
-### 2. `2_pc_ui_app/` (Giao diện Quản trị & Ghép nối - Tauri + React)
-- **Nhiệm vụ:** Thiết lập và cấp quyền cho điện thoại.
-- **Tính năng:**
-  - **Admin Login:** Bảo mật bằng mật khẩu quản trị cục bộ.
-  - **QR Pairing (AES Encrypted):** Sinh mã QR chứa Payload (DeviceID, Cloud URL) đã được mã hóa **AES-256** để chỉ App Mobile "chính chủ" mới có thể giải mã và kết nối.
-  - **Giao diện Glassmorphism:** Thiết kế hiện đại, mờ ảo và tối giản.
+## 📂 Cấu trúc dự án
+Tài liệu hướng dẫn chi tiết cho từng thành phần (Vui lòng nhấn vào liên kết bên dưới):
 
-### 3. `4_cloud_relay/` (Trạm Trung chuyển Bảo mật - Node.js + Socket.io)
-- **Nhiệm vụ:** Cầu nối điều khiển từ xa giữa Mobile và PC.
-- **Tính năng:**
-  - **Xác thực Chữ ký:** Chỉ cho phép các Client có đúng Secret Key và Timestamp hợp lệ kết nối.
-  - **Offline Queue (Hàng đợi ngoại tuyến):** Nếu Laptop mất mạng, mọi lệnh từ Mobile (như Khóa máy) sẽ được lưu vào RAM Server. Ngay khi Laptop có mạng trở lại, lệnh sẽ được "xả" xuống thực thi ngay lập tức.
-  - **Monitor API:** Cung cấp endpoint `/` để theo dõi tình trạng ngốn RAM và số lượng thiết bị đang kết nối thời gian thực.
-
-### 4. `3_mobile_app/` (Ứng dụng Chỉ huy)
-- *(Đang trong quá trình khởi tạo - Kiến trúc React Native).*
+1.  [**`1_windows_service/`**](file:///c:/Users/meoic/Desktop/Security/1_windows_service/README.md): Lõi thực thi bằng Rust (Chạy quyền SYSTEM).
+2.  [**`2_pc_ui_app/`**](file:///c:/Users/meoic/Desktop/Security/2_pc_ui_app/README.md): Giao diện quản trị & Trạm sinh mã QR Pairing (Tauri + React).
+3.  [**`3_mobile_app/`**](file:///c:/Users/meoic/Desktop/Security/3_mobile_app/README.md): Ứng dụng điều khiển trên iPhone/Android (React Native).
+4.  [**`4_cloud_relay/`**](file:///c:/Users/meoic/Desktop/Security/4_cloud_relay/README.md): Máy chủ điều phối & Hàng đợi trung tâm (Node.js).
 
 ---
-
-## 🛠️ Cài đặt & Khởi chạy
-
-### 1. Chuẩn bị môi trường
-- **Rust:** Cài đặt qua [rustup.rs](https://rustup.rs/) (Yêu cầu C++ Build Tools).
-- **Node.js:** Bản LTS mới nhất.
-- **Tauri:** Cài đặt WebView2 nếu là Windows đời cũ.
-
-### 2. Khởi chạy Cloud Relay (Server)
-```bash
-cd 4_cloud_relay
-npm install
-npm run dev
-```
-
-### 3. Khởi chạy PC UI
-```bash
-cd 2_pc_ui_app
-npm install
-npm run tauri dev
-```
-
-### 4. Biên dịch Windows Service
-```bash
-cd 1_windows_service
-cargo build --release
-```
-
----
-
-## 🔐 Cơ chế An ninh (Security Tier)
-- **Truyền tin:** Socket.io trên nền tảng xác thực HMAC SHA-256.
-- **Dữ liệu QR:** JSON String -> CryptoJS AES-256 -> QR Code.
-- **Bảo vệ RAM:** Server giới hạn tối đa 50 lệnh chờ cho mỗi thiết bị để chống tràn bộ nhớ (Memory Leak Prevention).
-
----
-⚠️ **Lưu ý:** Dự án đang trong giai đoạn phát triển (Development). Secret Key hiện đang để mặc định là `my_secure_key_123` trong code mẫu, hãy thay đổi trước khi triển khai thực tế.
-
-**Phát triển bởi:** zney (lequangkhanh295@gmail.com)
+**Author:** zney (lequangkhanh295@gmail.com)
