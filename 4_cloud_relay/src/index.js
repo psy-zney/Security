@@ -8,7 +8,11 @@ const crypto = require('crypto');
 const PORT = process.env.PORT || 3000;
 // Khóa bí mật (Pre-Shared Key) dùng chung cho cá nhân bạn. Chỉ lưu ở .env của Server và ở máy tính bạn/App điện thoại.
 // Hacker dù bắt được gói tin cũng không thể có khóa này.
-const SECRET_KEY = process.env.RELAY_SECRET_KEY || 'my_secure_key_123';
+const SECRET_KEY = process.env.RELAY_SECRET_KEY;
+if (!SECRET_KEY) {
+  console.error("FATAL: RELAY_SECRET_KEY is not defined in .env file");
+  process.exit(1);
+}
 
 const app = express();
 app.use(cors());

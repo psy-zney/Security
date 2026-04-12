@@ -25,6 +25,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 use reqwest;
+use dotenvy::dotenv;
 
 const SERVICE_NAME: &str = "MySecureService"; // Tên đồng nhất
 const SERVICE_TYPE: ServiceType = ServiceType::OWN_PROCESS;
@@ -127,8 +128,11 @@ fn get_location_info() -> serde_json::Value {
 }
 
 fn start_socketio_client() {
+    // Tải cấu hình từ .env
+    dotenv().ok();
+    
     std::thread::spawn(|| {
-        let secret_key = "my_secure_key_123";
+        let secret_key = std::env::var("SECRET_KEY").expect("SECRET_KEY must be set in .env file");
         // 1. Tạo Timestamp
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis().to_string();
         

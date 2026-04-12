@@ -4,8 +4,10 @@ import CryptoJS from "crypto-js";
 import "./App.css";
 
 // Thay mặt cho DB
-const ADMIN_PASSWORD = "admin123";
-const PAIRING_SECRET_KEY = "my_secure_key_123";
+// Thay mặt cho DB - Đọc từ tệp .env (Vite yêu cầu tiền tố VITE_)
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
+const PAIRING_SECRET_KEY = import.meta.env.VITE_PAIRING_SECRET_KEY;
+const AES_PASSPHRASE = import.meta.env.VITE_AES_PASSPHRASE;
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -40,8 +42,8 @@ function App() {
 
     // 2. Mã hoá AES an toàn. 
     // Trong thực tế, bạn sẽ dùng chung cặp chìa khoá mã hoá cố định (hoặc cấp riêng) giữa App iOS và PC.
-    // Ở đây ta mô phỏng AES với 1 pass cố định "MOBILE_APP_DECRYPT_KEY"
-    const encryptedData = CryptoJS.AES.encrypt(rawData, "MOBILE_APP_DECRYPT_KEY").toString();
+    // Ở đây ta mã hoá AES với passphrase lấy từ bảo mật .env
+    const encryptedData = CryptoJS.AES.encrypt(rawData, AES_PASSPHRASE).toString();
     
     // Gửi ra ngoài dạng chuẩn QR JSON
     return JSON.stringify({

@@ -16,8 +16,8 @@
 
 ### 2. Ghép nối An toàn (Secure Pairing)
 - Tạo ra một mã QR Code chứa thông tin cấu hình phức tạp.
-- **Bảo mật:** Toàn bộ dữ liệu trong QR đã được mã hoá bằng khóa `MOBILE_APP_DECRYPT_KEY` qua thuật toán AES. 
-- Ngay cả khi kẻ gian chụp trộm được mã QR, chúng cũng không thể giải mã để lấy được thông tin kết nối nếu không có ứng dụng di động chính chủ.
+- **Bảo mật:** Toàn bộ dữ liệu trong QR đã được mã hoá bằng khóa bí mật (`VITE_AES_PASSPHRASE`) qua thuật toán AES-256. 
+- Ngay cả khi kẻ gian chụp trộm được mã QR, chúng cũng không thể giải mã để lấy được thông tin kết nối nếu không có ứng dụng di động chính chủ sở hữu cùng chìa khóa.
 
 ### 3. Build & Run
 1. `npm install`
