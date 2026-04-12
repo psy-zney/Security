@@ -3,8 +3,8 @@
 // Lắng nghe lệnh từ App UI qua Named Pipe
 // ============================================================
 
-use windows_service_lib::ipc::named_pipe;
-use windows_service_lib::system_ops;
+use security::ipc::named_pipe;
+use security::system_ops;
 
 fn main() {
     env_logger::init();

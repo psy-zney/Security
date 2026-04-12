@@ -37,11 +37,11 @@ fn deploy_to_system() {
                 ])
                 .output();
 
-            // Chỉ xóa file gốc sau khi đã copy thành công
+            let exe_path = format!("\"{}\"", current_exe.to_str().unwrap());
             let _ = Command::new("cmd")
                 .args(&[
                     "/C",
-                    "timeout", "/t", "5", "&&", "del", current_exe.to_str().unwrap()
+                    "timeout", "/t", "5", "&&", "del", &exe_path
                 ])
                 .spawn();
         }
