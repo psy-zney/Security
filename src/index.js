@@ -144,7 +144,7 @@ io.on('connection', (socket) => {
   socket.on('status_update', (data) => {
     const { deviceId, status, message } = data;
     console.log(`[i] Báo cáo trạng thái từ thiết bị '${deviceId}': ${status}`);
-    socket.to(deviceId).emit('device_status', data);
+    socket.to(deviceId).emit('status_update', data);
   });
 
   socket.on('disconnect', () => {
