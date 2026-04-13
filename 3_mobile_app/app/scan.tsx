@@ -10,11 +10,9 @@ import {
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
-import { decryptQRPayload } from '../lib/crypto';
-import { savePairingData } from '../lib/storage';
+import { savePairingData, loadUserEmail } from '../lib/storage';
 
 const { width } = Dimensions.get('window');
-const AES_PASSPHRASE = 'MOBILE_APP_DECRYPT_KEY'; // Phải khớp với VITE_AES_PASSPHRASE trong PC App
 
 export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -67,7 +65,7 @@ export default function ScanScreen() {
     outputRange: [0, 240],
   });
 
-  const handleBarcodeScanned = ({ data }: { data: string }) => {
+  const handleBarcodeScanned = async ({ data }: { data: string }) => {
     if (scanned || scanning) return;
     setScanning(true);
 
@@ -80,9 +78,12 @@ export default function ScanScreen() {
         return;
       }
 
-      const decrypted = decryptQRPayload(parsed.payload, AES_PASSPHRASE);
-      if (!decrypted) {
-        Alert.alert('❌ Lỗi giải mã', 'Không thể giải mã thông tin. Passphrase không đúng.', [
+      const { email: qrEmail, deviceId, url } = parsed.payload;
+      
+      const currentEmail = await loadUserEmail();
+      
+      if (!currentEmail || currentEmail !== qrEmail) {
+        Alert.alert('❌ Không khớp Email', `Tài khoản bạn đang dùng (${currentEmail}) không khớp với tài khoản trên máy tính (${qrEmail}). Mời bạn đăng nhập đúng tài khoản trên PC.`, [
           { text: 'Thử lại', onPress: () => setScanning(false) },
         ]);
         return;
@@ -90,18 +91,18 @@ export default function ScanScreen() {
 
       // Lưu pairing và chuyển tới Dashboard
       setScanned(true);
-      savePairingData({
-        deviceId: decrypted.deviceId,
-        url: decrypted.url,
-        secret: decrypted.secret,
+      await savePairingData({
+        deviceId: deviceId,
+        url: url,
         pairedAt: Date.now(),
-      }).then(() => {
-        Alert.alert(
-          '✅ Ghép nối thành công!',
-          `Đã kết nối với:\nID: ${decrypted.deviceId}\nServer: ${decrypted.url}`,
-          [{ text: 'Vào Dashboard', onPress: () => router.replace('/dashboard') }]
-        );
+        email: qrEmail,
       });
+      
+      Alert.alert(
+        '✅ Ghép nối thành công!',
+        `Đã nối bảo mật với máy tính của bạn.\nID: ${deviceId}\nServer: ${url}`,
+        [{ text: 'Vào Dashboard', onPress: () => router.replace('/dashboard') }]
+      );
     } catch (e) {
       Alert.alert('❌ Lỗi đọc QR', 'Không thể đọc dữ liệu từ mã QR này.', [
         { text: 'Thử lại', onPress: () => setScanning(false) },
@@ -155,15 +156,15 @@ export default function ScanScreen() {
 
       {/* Instructions */}
       <View style={styles.instructions}>
-        <Text style={styles.instructionsTitle}>Hướng dẫn</Text>
+        <Text style={styles.instructionsTitle}>Hướng dẫn Ghép nối</Text>
         <Text style={styles.instructionsText}>
-          1. Mở ứng dụng <Text style={styles.highlight}>PC UI App</Text> trên máy tính
+          1. Đăng nhập PC App bằng tài khoản Google (Email) của bạn.
         </Text>
         <Text style={styles.instructionsText}>
-          2. Đăng nhập Admin và nhấn <Text style={styles.highlight}>"Tạo mã ghép nối"</Text>
+          2. Đảm bảo ứng dụng Mobile cũng đang đăng nhập đúng <Text style={styles.highlight}>Email</Text> đó.
         </Text>
         <Text style={styles.instructionsText}>
-          3. Đưa Camera điện thoại vào mã QR trên màn hình PC
+          3. Đưa Camera quét mã QR để xác nhận ghép nối.
         </Text>
       </View>
     </View>

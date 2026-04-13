@@ -6,21 +6,38 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
+  TextInput,
+  Alert
 } from 'react-native';
 import { router } from 'expo-router';
-import { loadPairingData } from '../lib/storage';
+import { loadPairingData, loadUserEmail, saveUserEmail } from '../lib/storage';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import {jwtDecode} from 'jwt-decode';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const { width } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
   const [checking, setChecking] = useState(true);
   const [hasPairing, setHasPairing] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [curEmail, setCurEmail] = useState('');
+  
+  // Demo Login states
+  const [emailInput, setEmailInput] = useState('');
+  const [pwdInput, setPwdInput] = useState('');
+
   const glowAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
 
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || 'dummy-client-id.apps.googleusercontent.com',
+  });
+
   useEffect(() => {
-    // Animations
     Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
@@ -33,22 +50,48 @@ export default function WelcomeScreen() {
       Animated.timing(slideAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
     ]).start();
 
-    // Kiểm tra pairing sau khi UI đã render
-    const timer = setTimeout(() => {
-      loadPairingData()
-        .then((data) => {
-          if (data?.deviceId) {
-            setHasPairing(true);
-          }
-          setChecking(false);
-        })
-        .catch(() => {
-          setChecking(false);
-        });
-    }, 500);
-
-    return () => clearTimeout(timer);
+    const checkState = async () => {
+      try {
+        const mail = await loadUserEmail();
+        if (mail) {
+          setCurEmail(mail);
+          setIsLoggedIn(true);
+          const data = await loadPairingData();
+          if (data?.deviceId) setHasPairing(true);
+        }
+      } catch (err) { }
+      setChecking(false);
+    };
+    checkState();
   }, []);
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+      try {
+        const decoded = jwtDecode<{ email: string }>(id_token);
+        if (decoded.email) {
+          handleSuccessLogin(decoded.email);
+        }
+      } catch (e) {
+         Alert.alert("Google Auth Error", "Không thể thu thập token");
+      }
+    }
+  }, [response]);
+
+  const handleSuccessLogin = async (email: string) => {
+    await saveUserEmail(email);
+    setCurEmail(email);
+    setIsLoggedIn(true);
+  };
+
+  const handleDemoLogin = () => {
+    if (emailInput === "lequangkhanh295@gmail.com" && pwdInput === "zney295") {
+      handleSuccessLogin(emailInput);
+    } else {
+      Alert.alert("Lỗi", "Email hoặc mật khẩu demo không đúng!");
+    }
+  };
 
   if (checking) {
     return (
@@ -58,6 +101,53 @@ export default function WelcomeScreen() {
     );
   }
 
+  // --- LOGIN SCREEN ---
+  if (!isLoggedIn) {
+     return (
+      <View style={styles.container}>
+        <Animated.View style={[styles.orb, styles.orbTopLeft, { opacity: glowAnim }]} />
+        <Animated.View style={[styles.orb, styles.orbBottomRight, { opacity: glowAnim }]} />
+        
+        <View style={styles.loginCard}>
+          <Text style={styles.title}>Đăng nhập</Text>
+          <Text style={styles.description}>
+            Sử dụng mạng an toàn bằng Google Auth
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.primaryButton, { backgroundColor: '#4285F4', marginBottom: 24 }]}
+            onPress={() => promptAsync()}
+          >
+            <Text style={styles.primaryButtonText}>G Đăng nhập với Google</Text>
+          </TouchableOpacity>
+
+          <Text style={{color:'#888', textAlign:'center', marginBottom: 12}}>— Hoặc Demo Mode —</Text>
+          
+          <TextInput
+            style={styles.input}
+            placeholder="Email (lequangkhanh295@gmail.com)"
+            placeholderTextColor="#666"
+            value={emailInput}
+            onChangeText={setEmailInput}
+            autoCapitalize="none"
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Mật khẩu (zney295)"
+            placeholderTextColor="#666"
+            value={pwdInput}
+            onChangeText={setPwdInput}
+            secureTextEntry
+          />
+          <TouchableOpacity style={styles.primaryButton} onPress={handleDemoLogin}>
+            <Text style={styles.primaryButtonText}>Đăng nhập Demo</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+     )
+  }
+
+  // --- WELCOME SCREEN ---
   return (
     <View style={styles.container}>
       <Animated.View style={[styles.orb, styles.orbTopLeft, { opacity: glowAnim }]} />
@@ -70,15 +160,14 @@ export default function WelcomeScreen() {
         </View>
 
         <Text style={styles.title}>Security Core</Text>
-        <Text style={styles.subtitle}>Advanced Anti-Theft System</Text>
+        <Text style={styles.subtitle}>{"Email: " + curEmail}</Text>
         <Text style={styles.description}>
           Thiết lập kết nối an toàn với Laptop của bạn bằng cách quét mã QR từ ứng dụng quản trị trên PC.
         </Text>
 
         <View style={styles.badges}>
-          <View style={styles.badge}><Text style={styles.badgeText}>🔐 AES-256</Text></View>
-          <View style={styles.badge}><Text style={styles.badgeText}>⚡ Realtime</Text></View>
-          <View style={styles.badge}><Text style={styles.badgeText}>📡 Offline Queue</Text></View>
+          <View style={styles.badge}><Text style={styles.badgeText}>⚡ Email Verification</Text></View>
+          <View style={styles.badge}><Text style={styles.badgeText}>📡 Realtime</Text></View>
         </View>
 
         {hasPairing ? (
@@ -100,12 +189,11 @@ export default function WelcomeScreen() {
         )}
 
         {hasPairing && (
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={() => router.push('/scan')}
-          >
-            <Text style={styles.secondaryButtonText}>Ghép nối thiết bị mới</Text>
-          </TouchableOpacity>
+           <View style={{flexDirection: 'row', gap: 16, marginTop: 12}}>
+            <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push('/scan')}>
+              <Text style={styles.secondaryButtonText}>Ghép nối thiết bị mới</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </Animated.View>
     </View>
@@ -119,6 +207,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+  },
+  loginCard: {
+    width: width * 0.85,
+    backgroundColor: '#151520',
+    padding: 24,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#2a2a3a',
+    zIndex: 10,
+  },
+  input: {
+    backgroundColor: '#0a0a0f',
+    color: '#fff',
+    borderWidth: 1,
+    borderColor: '#2a2a3a',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
   },
   loadingText: {
     color: '#888',
@@ -145,6 +251,7 @@ const styles = StyleSheet.create({
   content: {
     width: width * 0.88,
     alignItems: 'center',
+    zIndex: 10,
   },
   shieldContainer: {
     width: 100,
@@ -169,12 +276,12 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 1,
     marginBottom: 6,
+    textAlign: 'center'
   },
   subtitle: {
     fontSize: 14,
     color: '#6C63FF',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
+    letterSpacing: 1,
     marginBottom: 16,
     fontWeight: '600',
   },
@@ -219,7 +326,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 17,
     fontWeight: '700',
-    letterSpacing: 0.5,
   },
   secondaryButton: {
     paddingVertical: 10,

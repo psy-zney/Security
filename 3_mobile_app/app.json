@@ -28,7 +28,8 @@
           "color": "#6C63FF"
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-web-browser"
     ],
     "scheme": "security-command",
     "experiments": {

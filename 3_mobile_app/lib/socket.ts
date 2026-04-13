@@ -34,7 +34,11 @@ export function connectToRelay(
   });
 
   socket.on('status_update', (data: any) => {
-    console.log('[Socket] Nhận status_update:', data);
+    const logData = { ...data };
+    if (logData.image) {
+      logData.image = '[BASE64_IMAGE_DATA_REMOVED_FROM_LOG]';
+    }
+    console.log('[Socket] Nhận status_update:', logData);
     onStatusUpdate(data);
   });
 

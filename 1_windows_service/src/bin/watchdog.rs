@@ -21,8 +21,8 @@ fn main() {
         
         for (_, process) in sys.processes() {
             if let Some(name) = process.name().to_str() {
-                // Tên process của main_service khi build (main_service.exe)
-                if name.to_lowercase() == "main_service.exe" {
+                // Tên process của main_service theo Cargo package (security.exe)
+                if name.to_lowercase() == "security.exe" {
                     is_running = true;
                     break;
                 }
@@ -31,9 +31,9 @@ fn main() {
 
         if !is_running {
             log::warn!("[Watchdog] Phát hiện main_service bị tắt! Đang khởi động lại...");
-            // TODO: Khởi động lại service bằng Command::new("net").arg("start")...
+            // Khởi động lại service bằng Command
             let _ = std::process::Command::new("sc")
-                .args(["start", "MySecureService"]) // Tên service thực tế đăng ký trong SCM
+                .args(["start", "SecurityService"]) // Tên service thực tế đăng ký trong SCM
                 .output();
                 
             // Có thể call/gửi HTTP request cảnh báo qua Node.js server ở đây

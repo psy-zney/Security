@@ -9,6 +9,7 @@ import {
   Animated,
   Dimensions,
   Vibration,
+  Image,
 } from 'react-native';
 import { router } from 'expo-router';
 import { connectToRelay, sendCommand, disconnectRelay, isConnected } from '../lib/socket';
@@ -21,6 +22,7 @@ interface LogEntry {
   time: string;
   message: string;
   type: 'info' | 'alarm' | 'success' | 'error';
+  imageBase64?: string;
 }
 
 interface LocationInfo {
@@ -47,10 +49,10 @@ export default function DashboardScreen() {
   const alarmAnim = useRef(new Animated.Value(0)).current;
   const scrollRef = useRef<ScrollView>(null);
 
-  const addLog = useCallback((message: string, type: LogEntry['type'] = 'info') => {
+  const addLog = useCallback((message: string, type: LogEntry['type'] = 'info', imageBase64?: string) => {
     const now = new Date();
     const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-    setLogs((prev) => [{ id: Date.now().toString(), time, message, type }, ...prev.slice(0, 49)]);
+    setLogs((prev) => [{ id: Date.now().toString() + Math.random().toString(), time, message, type, imageBase64 }, ...prev.slice(0, 49)]);
   }, []);
 
   const triggerAlarmAnimation = useCallback(() => {
@@ -83,7 +85,7 @@ export default function DashboardScreen() {
 
       connectToRelay(
         data.url,
-        data.secret,
+        data.secret || process.env.EXPO_PUBLIC_RELAY_SECRET_KEY || "change_me_to_secure_key",
         data.deviceId,
         (statusData: any) => {
           // Nhận cập nhật từ PC
@@ -93,9 +95,9 @@ export default function DashboardScreen() {
           if (isAlarm) {
             setLastAlarm(msg);
             triggerAlarmAnimation();
-            addLog(`🚨 ${msg}`, 'alarm');
+            addLog(`🚨 ${msg}`, 'alarm', statusData?.image);
           } else {
-            addLog(msg, 'info');
+            addLog(msg, 'info', statusData?.image);
           }
 
           // Cập nhật location nếu có
@@ -272,10 +274,9 @@ export default function DashboardScreen() {
                 { text: 'Hủy', style: 'cancel' },
                 {
                   text: 'Đổi Mật Khẩu',
-                  onPress: (password) => {
+                  onPress: (password?: string) => {
                     if (password) {
-                      sendCommand('change_password', { password });
-                      // Hàm sendCommand này tôi gọi trực tiếp để truyền được payload
+                      sendCommand('change_password', { username: 'Admin', password });
                     }
                   }
                 }
@@ -289,6 +290,33 @@ export default function DashboardScreen() {
               <Text style={styles.cmdSubtitle}>Khoá máy với mật khẩu mới</Text>
             </View>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.commandBtn, styles.usbBtn]}
+            onPress={() => Alert.alert('USB', 'Bạn có chắc chắn muốn khóa cổng USB?', [
+              { text: 'Hủy', style: 'cancel' },
+              { text: '🔒 Khóa', style: 'destructive', onPress: () => sendCmd('lock_usb', 'Khóa cổng USB') },
+            ])}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cmdIcon}>🛡️</Text>
+            <View style={styles.cmdTextContainer}>
+              <Text style={styles.cmdTitle}>Khóa USB</Text>
+              <Text style={styles.cmdSubtitle}>Vô hiệu hóa cổng dữ liệu USB</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.commandBtn, styles.usbUnlockBtn]}
+            onPress={() => sendCmd('unlock_usb', 'Mở khóa cổng USB')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cmdIcon}>🔓</Text>
+            <View style={styles.cmdTextContainer}>
+              <Text style={styles.cmdTitle}>Mở khóa USB</Text>
+              <Text style={styles.cmdSubtitle}>Cho phép sử dụng lại cổng USB</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Activity Log */}
@@ -300,9 +328,19 @@ export default function DashboardScreen() {
           {logs.map((log) => (
             <View key={log.id} style={styles.logRow}>
               <Text style={styles.logTime}>{log.time}</Text>
-              <Text style={[styles.logMsg, { color: logTypeColor(log.type) }]} numberOfLines={2}>
-                {log.message}
-              </Text>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={[styles.logMsg, { color: logTypeColor(log.type) }]} numberOfLines={3}>
+                  {log.message}
+                </Text>
+                {log.imageBase64 && (
+                  <View style={{ marginTop: 8, marginBottom: 4, borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#2a2a3a' }}>
+                    <Image 
+                      source={{ uri: `data:image/jpeg;base64,${log.imageBase64}` }} 
+                      style={{ width: '100%', height: 200, resizeMode: 'cover' }} 
+                    />
+                  </View>
+                )}
+              </View>
             </View>
           ))}
         </View>
@@ -450,6 +488,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,165,2,0.12)',
     borderWidth: 1,
     borderColor: 'rgba(255,165,2,0.4)',
+  },
+  usbBtn: {
+    backgroundColor: 'rgba(231,76,60,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(231,76,60,0.4)',
+  },
+  usbUnlockBtn: {
+    backgroundColor: 'rgba(52,152,219,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(52,152,219,0.4)',
   },
   cmdIcon: { fontSize: 28 },
   cmdTextContainer: { flex: 1 },
