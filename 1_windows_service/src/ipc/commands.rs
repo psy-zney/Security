@@ -12,6 +12,7 @@ pub enum SecureCommand {
     CaptureImage,
     GetLocation,
     GetIp,
+    LockPc,
     // Lệnh Ping để kiểm tra trạng thái sống
     Ping,
 }

@@ -19,7 +19,6 @@ export function connectToRelay(
   currentDeviceId = deviceId;
 
   socket = io(`${serverUrl}/?timestamp=${timestamp}&signature=${signature}`, {
-    transports: ['websocket'],
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 2000,

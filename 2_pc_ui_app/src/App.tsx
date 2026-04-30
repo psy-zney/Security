@@ -1,10 +1,25 @@
 import { useState, useEffect } from "react";
-import QRCode from "react-core-image"; // Wait, it uses react-qr-code
-import QRCodeRect from "react-qr-code";
-import { GoogleLogin } from '@react-oauth/google';
+import QRCode from "react-qr-code";
 import { jwtDecode } from "jwt-decode";
 import { invoke } from "@tauri-apps/api/core";
+import CryptoJS from 'crypto-js';
+import { listen } from '@tauri-apps/api/event';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import "./App.css";
+
+// Hàm tạo PKCE (RFC 7636) để dùng Google OAuth mà không bị lộ Secret Key
+function base64URLEncode(str: any) {
+  return str.toString(CryptoJS.enc.Base64)
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+}
+
+function generatePKCE() {
+  const verifier = base64URLEncode(CryptoJS.lib.WordArray.random(32));
+  const challenge = base64URLEncode(CryptoJS.SHA256(verifier));
+  return { verifier, challenge };
+}
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -16,19 +31,31 @@ function App() {
   const [loginError, setLoginError] = useState("");
   
   const [machineId, setMachineId] = useState("fetching...");
+  const [relayUrl, setRelayUrl] = useState("http://127.0.0.1:3000");
   
   useEffect(() => {
     invoke<string>("get_machine_id")
       .then((id) => setMachineId(id))
       .catch((err) => {
         console.error("Failed to get machine id:", err);
-        setMachineId(import.meta.env.VITE_DEVICE_ID || "unknown_pc");
+        setMachineId("unknown_pc");
       });
+
+    invoke<string>("get_app_config")
+      .then((configStr) => {
+        try {
+          const cfg = JSON.parse(configStr);
+          if (cfg.RELAY_URL) setRelayUrl(cfg.RELAY_URL);
+        } catch(e) {
+          console.error("Failed to parse config:", e);
+        }
+      })
+      .catch(err => console.error("Failed to get config:", err));
   }, []);
 
   const deviceConfig = {
     deviceId: machineId,
-    url: import.meta.env.VITE_RELAY_URL || "http://192.168.88.62:3000"
+    url: relayUrl
   };
 
   const handleDemoLogin = (e: React.FormEvent) => {
@@ -57,6 +84,79 @@ function App() {
     });
   };
 
+  const handleNativeGoogleLogin = async () => {
+    try {
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      if (!clientId || clientId.includes('PASTE_YOUR')) {
+        setLoginError("Hãy dán VITE_GOOGLE_CLIENT_ID thật vào file .env của 2_pc_ui_app.");
+        return;
+      }
+
+      setLoginError("Đang chờ trình duyệt đăng nhập...");
+
+      // 1. Gọi lệnh Rust để mở một Local Server lắng nghe ở cổng cố định 8989
+      const port = await invoke<number>('start_oauth_server');
+      console.log('OAuth server started on port:', port);
+
+      // 2. Tạo chuỗi PKCE bảo mật
+      const { verifier, challenge } = generatePKCE();
+      const redirectUri = `http://localhost:${port}/callback`;
+
+      // 3. Chuẩn bị đường link để nhảy sang trình duyệt Chrome của người dùng
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + 
+        `client_id=${clientId}&` +
+        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+        `response_type=code&` +
+        `scope=email profile&` +
+        `code_challenge=${challenge}&` +
+        `code_challenge_method=S256`;
+
+      // 4. Lắng nghe phản hồi trả về từ Rust (khi trình duyệt chuyển về localhost:8989)
+      const unlisten = await listen<string>('oauth_callback', async (event) => {
+        const returnedUrl = event.payload;
+        unlisten(); // ngay lập tức huỷ bỏ nghe ngóng để tiết kiệm tài nguyên
+        
+        try {
+          // Trích xuất mã Code ra khỏi URL
+          const urlObj = new URL(returnedUrl);
+          const code = urlObj.searchParams.get('code');
+
+          if (!code) throw new Error("Google không trả về uỷ quyền (code).");
+
+          // 5. Gửi lên Google lấy cục Token xịn
+          const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              client_id: clientId,
+              code: code,
+              redirect_uri: redirectUri,
+              grant_type: "authorization_code",
+              code_verifier: verifier
+            })
+          });
+
+          const tokenData = await tokenRes.json();
+          if (tokenData.id_token) {
+            const decoded = jwtDecode<{ email: string }>(tokenData.id_token);
+            setUserEmail(decoded.email);
+            setIsAuthenticated(true);
+          } else {
+             setLoginError("Lấy token thất bại: " + JSON.stringify(tokenData));
+          }
+        } catch (e: any) {
+          setLoginError("Lỗi trao đổi token: " + e.message);
+        }
+      });
+
+      // Bật trình duyệt hệ thống
+      await openUrl(authUrl);
+
+    } catch (e: any) {
+      setLoginError("Không thể bật Server bắt Login: " + e.message);
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="container login-container">
@@ -65,29 +165,18 @@ function App() {
             <h2>Đăng nhập Security</h2>
             <p className="subtitle">Security Core Dashboard</p>
           </div>
-          
           <div className="google-auth-container" style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
-             <GoogleLogin
-                onSuccess={credentialResponse => {
-                  try {
-                    if (credentialResponse.credential) {
-                      const decoded = jwtDecode<{ email: string }>(credentialResponse.credential);
-                      setUserEmail(decoded.email);
-                      setIsAuthenticated(true);
-                    }
-                  } catch (e) {
-                    console.error("Token decode failed", e);
-                  }
-                }}
-                onError={() => {
-                  console.log('Login Failed');
-                  setLoginError("Google Sign-In thất bại. (Chưa config Client ID?)");
-                }}
-                useOneTap
-              />
+            <button 
+              className="btn primary" 
+              onClick={handleNativeGoogleLogin}
+              style={{ padding: '16px', width: '100%', backgroundColor: '#fff', color: '#000', fontWeight: 'bold' }}
+            >
+              <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="G" style={{ width: 18, marginRight: 8, verticalAlign: 'middle' }} />
+              Đăng nhập bằng Trình Duyệt
+            </button>
           </div>
 
-          <div style={{ textAlign: 'center', marginBottom: '16px', color: '#888' }}>Hoặc dùng tài khoản Demo</div>
+          <div style={{ textAlign: 'center', marginBottom: '16px', color: '#888' }}>👇 Đăng nhập ngay lập tức 👇</div>
 
           <form onSubmit={handleDemoLogin} className="login-form">
             <div className="input-group">
@@ -132,7 +221,7 @@ function App() {
             </p>
             
             <div className="qr-wrapper" style={{ padding: '16px', backgroundColor: 'white', borderRadius: '12px' }}>
-              <QRCodeRect 
+              <QRCode 
                 value={generateQRCodePayload()} 
                 size={220}
                 style={{ height: "auto", maxWidth: "100%", width: "100%" }}
@@ -145,8 +234,41 @@ function App() {
 
             <div className="device-info mt-4">
               <p><strong>Device ID:</strong> <span>{deviceConfig.deviceId}</span></p>
-              <p><strong>Bảo mật QR:</strong> <span>Email Verification Mode</span></p>
+              <div style={{ marginTop: 12 }}>
+                <p><strong>Server Relay URL (Địa chỉ IP của máy tính này):</strong></p>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                  <input 
+                    type="text" 
+                    value={relayUrl} 
+                    onChange={(e) => setRelayUrl(e.target.value)}
+                    style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid #1a1a2e', backgroundColor: '#0a0a0f', color: '#fff', fontSize: '13px' }}
+                  />
+                </div>
+                <p style={{ fontSize: '12px', color: '#888', marginTop: '8px', lineHeight: 1.4 }}>
+                  Ghi chú: Mã QR sẽ cập nhật tự động khi bạn sửa URL trên. Điện thoại cần kết nối đúng IP mạng LAN của máy này (Ví dụ: http://192.168.x.x:3000) để tránh lỗi Websocket.
+                </p>
+              </div>
             </div>
+          </div>
+        </section>
+
+        <section className="actions-section" style={{ marginTop: '24px' }}>
+          <div className="card actions-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            <button className="btn primary" onClick={() => invoke('trigger_lock').then(alert).catch(alert)}>
+              🔒 Khóa PC
+            </button>
+            <button className="btn warning" onClick={() => invoke('trigger_lock_usb').then(alert).catch(alert)}>
+              🛡️ Khóa USB
+            </button>
+            <button className="btn danger" onClick={() => invoke('trigger_capture_camera').then(alert).catch(alert)}>
+              📸 Chụp Ảnh Ngầm
+            </button>
+            <button className="btn secondary" onClick={() => {
+              const newPass = prompt("Nhập mật khẩu mới:");
+              if (newPass) invoke('trigger_change_password', { newPass }).then(alert).catch(alert);
+            }}>
+              🔑 Đổi Mật Khẩu
+            </button>
           </div>
         </section>
       </div>

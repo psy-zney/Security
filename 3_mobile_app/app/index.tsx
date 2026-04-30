@@ -33,8 +33,12 @@ export default function WelcomeScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
 
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || 'dummy-client-id.apps.googleusercontent.com',
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+    scopes: ['profile', 'email'],
   });
 
   useEffect(() => {
@@ -67,17 +71,32 @@ export default function WelcomeScreen() {
 
   useEffect(() => {
     if (response?.type === 'success') {
-      const { id_token } = response.params;
-      try {
-        const decoded = jwtDecode<{ email: string }>(id_token);
-        if (decoded.email) {
-          handleSuccessLogin(decoded.email);
-        }
-      } catch (e) {
-         Alert.alert("Google Auth Error", "Không thể thu thập token");
+      const accessToken = response.authentication?.accessToken || response.params?.access_token;
+      if (accessToken) {
+        fetchUserInfo(accessToken);
+      } else {
+        Alert.alert("Google Auth Error", "Không thu thập được access token từ Google.");
       }
+    } else if (response?.type === 'error') {
+      Alert.alert("Google Auth Error", "Đăng nhập thất bại hoặc bị huỷ.");
     }
   }, [response]);
+
+  const fetchUserInfo = async (token: string) => {
+    try {
+      const res = await fetch('https://www.googleapis.com/userinfo/v2/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const user = await res.json();
+      if (user.email) {
+        handleSuccessLogin(user.email);
+      } else {
+        Alert.alert("Lỗi", "Không tìm thấy email liên kết với tài khoản này.");
+      }
+    } catch(e: any) {
+      Alert.alert("Google API Error", e?.message || "Không thể tải thông tin profile Google.");
+    }
+  };
 
   const handleSuccessLogin = async (email: string) => {
     await saveUserEmail(email);

