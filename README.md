@@ -1,28 +1,28 @@
-# 🛡️ Security Core Project (Advanced Anti-Theft System)
+# ☁️ Cloud Relay (Máy chủ Trung gian)
 
-Dự án Security Core là một hệ sinh thái bảo mật đa nền tảng, được thiết kế để cung cấp khả năng giám sát, can thiệp và bảo vệ thiết bị Windows từ xa. Hệ thống tập trung vào tính toàn vẹn của dữ liệu, khả năng định vị thực tế và cơ chế thực thi lệnh ngoại tuyến.
+Đây là "Trạm Bưu Điện" - Nơi điều phối mọi thông điệp bảo mật giữa thiết bị Di động và Máy tính.
 
-## 🎯 Mục tiêu dự án
-Xây dựng một giải pháp an ninh chủ động cho các thiết bị di động (Laptop), cho phép người sở hữu duy trì quyền kiểm soát tuyệt đối ngay cả khi thiết bị đã bị chiếm quyền truy cập vật lý. Hệ thống tập trung vào việc vượt qua các lớp ngụy trang mạng và đảm bảo khả năng phản ứng tức thì thông qua mạng lưới Relay trung gian.
+## 🛠️ Công nghệ sử dụng
+- **Runtime:** Node.js.
+- **Thư viện:** Express, Socket.io, Crypto.
+- **An ninh:** Local RAM Queue (Hàng đợi lưu trên RAM).
 
-## 🦾 Khả năng cốt lõi (Core Capabilities)
-- **Điều khiển thời gian thực:** Quản lý thiết bị qua giao thức WebSockets bảo mật.
-- **Định vị hạ tầng vật lý:** Sử dụng kỹ thuật quét SSID/BSSID để xác định vị trí thực chất của thiết bị, loại bỏ sự sai lệch do VPN hoặc Proxy gây ra.
-- **Cơ chế Ambush Camera:** Hệ thống rình rập tự động, kích hoạt chụp ảnh ghi hình ngay khi camera phần cứng được kích hoạt.
-- **Xác thực đa tầng:** Sử dụng mã hóa AES-256 cho việc ghép nối thiết bị và HMAC-SHA256 cho việc truyền tin.
-- **Hàng đợi lệnh (Offline Queue):** Đảm bảo tính sẵn sàng của lệnh điều khiển bằng cơ chế lưu trữ đệm tại Relay Server.
+## 🚀 Tính năng Chi tiết
 
-## 📂 Danh mục các Module
-Hệ thống được phân rã thành các thành phần chuyên biệt:
+### 1. HMAC Auth Middleware
+Toàn bộ mọi kết nối vào Server đều phải đi qua lớp "Cửa khẩu" kiểm soát:
+- Kiểm tra tính hợp lệ của chữ ký (Signature).
+- Kiểm tra hạn sử dụng của lệnh (Timestamp Validation - Chống trộm lại gói tin).
 
-1.  [**`1_windows_service/`**](1_windows_service/README.md): Lõi thực thi mức hệ thống bằng Rust (SYSTEM privileges).
-2.  [**`2_pc_ui_app/`**](2_pc_ui_app/README.md): Giao diện quản trị Desktop & Trạm sinh mã định danh (Tauri + React).
-3.  [**`3_mobile_app/`**](3_mobile_app/README.md): Ứng dụng điều khiển trung tâm (React Native).
-4.  [**`4_cloud_relay/`**](4_cloud_relay/README.md): Máy chủ điều phối lưu lượng & Hàng đợi lệnh (Node.js).
+### 2. Offline Queue (Hàng đợi Ngoại tuyến)
+- Khi lệnh điều khiển bay tới mà Laptop đang mất mạng, Server sẽ không vứt bỏ lệnh đó.
+- Server tự tạo một kho lưu trữ tạm thời `messageQueue`.
+- Ngay khi Laptop thò mặt lên (Event: `register`), Server sẽ **Xả toàn bộ lệnh tồn đọng** xuống Laptop.
 
-## 🔐 Bảo mật
-- Toàn bộ các khóa bí mật (Secrets) được quản lý qua tệp môi trường `.env`.
-- Mã nguồn không chứa thông tin định danh hay thông tin đăng nhập gán cứng.
+### 3. RAM Monitoring
+- Truy cập `GET /` để xem báo cáo chi tiết về tình trạng RAM hệ thống đang sử dụng (RSS, Heap).
+- Giới hạn 50 tin nhắn chờ/thiết bị để tránh kẻ xấu tấn công gây tràn bộ nhớ Server.
 
----
-**Author:** zney (lequangkhanh295@gmail.com)
+## 🔨 Cách sử dụng
+1. `npm install`
+2. `npm run dev` (Khởi chạy bằng nodemon).

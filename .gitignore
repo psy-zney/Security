@@ -26,3 +26,9 @@ Thumbs.db
 # Editor
 .vscode/settings.json
 .idea/
+
+# Ignore other project subdirectories in this branch
+/1_windows_service/
+/2_pc_ui_app/
+/3_mobile_app/
+
