@@ -10,7 +10,7 @@ import {
   Alert
 } from 'react-native';
 import { router } from 'expo-router';
-import { loadPairingData, loadUserEmail, saveUserEmail } from '../lib/storage';
+import { loadPairingData, loadUserEmail, saveUserEmail, clearUserEmail, clearPairingData } from '../lib/storage';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import {jwtDecode} from 'jwt-decode';
@@ -19,13 +19,20 @@ WebBrowser.maybeCompleteAuthSession();
 
 const { width } = Dimensions.get('window');
 
+const maskEmail = (email: string) => {
+  if (!email) return '';
+  const parts = email.split('@');
+  if (parts.length !== 2) return email;
+  const [name, domain] = parts;
+  if (name.length <= 3) return `${name}***@${domain}`;
+  return `${name.substring(0, 3)}***@${domain}`;
+};
+
 export default function WelcomeScreen() {
   const [checking, setChecking] = useState(true);
   const [hasPairing, setHasPairing] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [curEmail, setCurEmail] = useState('');
-  
-  // Demo Login states
   const [emailInput, setEmailInput] = useState('');
   const [pwdInput, setPwdInput] = useState('');
 
@@ -104,12 +111,20 @@ export default function WelcomeScreen() {
     setIsLoggedIn(true);
   };
 
-  const handleDemoLogin = () => {
+  const handlePasswordLogin = () => {
     if (emailInput === "lequangkhanh295@gmail.com" && pwdInput === "zney295") {
       handleSuccessLogin(emailInput);
     } else {
-      Alert.alert("Lỗi", "Email hoặc mật khẩu demo không đúng!");
+      Alert.alert("Lỗi", "Email hoặc mật khẩu không đúng!");
     }
+  };
+
+  const handleLogout = async () => {
+    await clearUserEmail();
+    await clearPairingData();
+    setCurEmail('');
+    setIsLoggedIn(false);
+    setHasPairing(false);
   };
 
   if (checking) {
@@ -134,17 +149,17 @@ export default function WelcomeScreen() {
           </Text>
 
           <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: '#4285F4', marginBottom: 24 }]}
+            style={[styles.primaryButton, { backgroundColor: '#4285F4', marginBottom: 20 }]}
             onPress={() => promptAsync()}
           >
             <Text style={styles.primaryButtonText}>G Đăng nhập với Google</Text>
           </TouchableOpacity>
 
-          <Text style={{color:'#888', textAlign:'center', marginBottom: 12}}>— Hoặc Demo Mode —</Text>
+          <Text style={{color:'#888', textAlign:'center', marginBottom: 16}}>— Hoặc Đăng nhập tài khoản —</Text>
           
           <TextInput
             style={styles.input}
-            placeholder="Email (lequangkhanh295@gmail.com)"
+            placeholder="Email"
             placeholderTextColor="#666"
             value={emailInput}
             onChangeText={setEmailInput}
@@ -152,14 +167,14 @@ export default function WelcomeScreen() {
           />
           <TextInput
             style={styles.input}
-            placeholder="Mật khẩu (zney295)"
+            placeholder="Mật khẩu"
             placeholderTextColor="#666"
             value={pwdInput}
             onChangeText={setPwdInput}
             secureTextEntry
           />
-          <TouchableOpacity style={styles.primaryButton} onPress={handleDemoLogin}>
-            <Text style={styles.primaryButtonText}>Đăng nhập Demo</Text>
+          <TouchableOpacity style={styles.primaryButton} onPress={handlePasswordLogin}>
+            <Text style={styles.primaryButtonText}>Đăng nhập</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -179,7 +194,7 @@ export default function WelcomeScreen() {
         </View>
 
         <Text style={styles.title}>Security Core</Text>
-        <Text style={styles.subtitle}>{"Email: " + curEmail}</Text>
+        <Text style={styles.subtitle}>{"Email: " + maskEmail(curEmail)}</Text>
         <Text style={styles.description}>
           Thiết lập kết nối an toàn với Laptop của bạn bằng cách quét mã QR từ ứng dụng quản trị trên PC.
         </Text>
@@ -207,10 +222,19 @@ export default function WelcomeScreen() {
           </TouchableOpacity>
         )}
 
-        {hasPairing && (
+        {hasPairing ? (
            <View style={{flexDirection: 'row', gap: 16, marginTop: 12}}>
             <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push('/scan')}>
               <Text style={styles.secondaryButtonText}>Ghép nối thiết bị mới</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.secondaryButton} onPress={handleLogout}>
+              <Text style={[styles.secondaryButtonText, {color: '#FF4757'}]}>Đăng xuất</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+           <View style={{flexDirection: 'row', gap: 16, marginTop: 12}}>
+            <TouchableOpacity style={styles.secondaryButton} onPress={handleLogout}>
+              <Text style={[styles.secondaryButtonText, {color: '#FF4757'}]}>Đăng xuất</Text>
             </TouchableOpacity>
           </View>
         )}
