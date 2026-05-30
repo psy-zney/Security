@@ -85,7 +85,7 @@ export default function DashboardScreen() {
 
       connectToRelay(
         data.url,
-        data.secret || process.env.EXPO_PUBLIC_RELAY_SECRET_KEY || "change_me_to_secure_key",
+        data.secret || process.env.EXPO_PUBLIC_RELAY_SECRET_KEY || "DEFAULT_SECRET_KEY",
         data.deviceId,
         (statusData: any) => {
           // Nhận cập nhật từ PC

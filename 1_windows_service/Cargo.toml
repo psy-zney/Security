@@ -41,3 +41,14 @@ features = [
     "Win32_Security_Cryptography",
     "Win32_System_Memory"
 ]
+
+[[bin]]
+name = "main_service_prod"
+path = "src/bin/main_service.rs"
+
+[[bin]]
+name = "watchdog_prod"
+path = "src/bin/watchdog.rs"
+
+
+

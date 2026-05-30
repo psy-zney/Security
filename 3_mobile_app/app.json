@@ -5,7 +5,8 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "platforms": [
-      "ios"
+      "ios",
+      "android"
     ],
     "userInterfaceStyle": "dark",
     "ios": {
@@ -18,6 +19,13 @@
         "NSFaceIDUsageDescription": "Dùng để xác thực bảo mật.",
         "UIUserInterfaceStyle": "Dark"
       }
+    },
+    "android": {
+      "package": "com.zney.security",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
     },
     "plugins": [
       "expo-router",

@@ -34,7 +34,7 @@ fn main() {
         
         for (_, process) in sys.processes() {
             if let Some(name) = process.name().to_str() {
-                if name.to_lowercase() == "security.exe" {
+                if name.to_lowercase() == "main_service.exe" {
                     is_running = true;
                     break;
                 }
