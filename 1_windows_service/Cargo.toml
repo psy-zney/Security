@@ -43,11 +43,11 @@ features = [
 ]
 
 [[bin]]
-name = "main_service_prod"
+name = "main_service"
 path = "src/bin/main_service.rs"
 
 [[bin]]
-name = "watchdog_prod"
+name = "watchdog"
 path = "src/bin/watchdog.rs"
 
 

@@ -1,167 +1,330 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Security Core - Advanced Remote Anti-Theft System</title>
+  <title>Security Core | Advanced Remote Anti-Theft System</title>
+  
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <!-- Background Glows -->
-  <div class="glow glow-1"></div>
-  <div class="glow glow-2"></div>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- CSS Framework & Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              indigo: '#6C63FF',
+              dark: '#000000',
+              gray: '#121212',
+              white: '#FFFFFF',
+              border: 'rgba(255, 255, 255, 0.1)',
+            }
+          },
+          fontFamily: {
+            sans: ['Space Grotesk', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
 
-  <!-- Header -->
-  <header>
-    <div class="header-container">
-      <div class="logo">
-        <span class="shield-icon">🛡️</span>
-        <span class="logo-text">Security<span class="accent-text">Core</span></span>
-      </div>
-      <div class="controls">
-        <button id="lang-toggle" class="btn btn-secondary">
+  <style>
+    body {
+      background-color: #000000;
+      color: #FFFFFF;
+      overflow-x: hidden;
+    }
+    
+    /* Cyber dots grid background */
+    .cyber-grid {
+      background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    /* Glassmorphism panel style */
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.02);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Sharp corners (no rounded) according to Cyber-Elite style guidelines */
+    .sharp {
+      border-radius: 0px !important;
+    }
+
+    /* Indigo glow effects */
+    .indigo-glow {
+      box-shadow: 0 0 35px rgba(108, 99, 255, 0.15);
+    }
+    
+    .indigo-border-glow:hover {
+      border-color: #6C63FF;
+      box-shadow: 0 0 25px rgba(108, 99, 255, 0.25);
+    }
+
+    .text-glow {
+      text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+    }
+
+    /* Scanline effect */
+    @keyframes scan {
+      0% { top: 0%; opacity: 0; }
+      50% { opacity: 0.4; }
+      100% { top: 100%; opacity: 0; }
+    }
+    .scanner::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: #6C63FF;
+      animation: scan 4s linear infinite;
+    }
+
+    /* Pulse effect */
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.3); opacity: 1; }
+    }
+    .pulse-indicator {
+      animation: pulse-dot 2s infinite;
+    }
+  </style>
+</head>
+<body class="font-sans antialiased selection:bg-brand-indigo selection:text-white">
+
+  <!-- Cyber background elements -->
+  <div class="fixed inset-0 cyber-grid pointer-events-none z-0"></div>
+  <div class="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#6C63FF] opacity-[0.03] blur-[150px] pointer-events-none z-0 rounded-full"></div>
+  <div class="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#6C63FF] opacity-[0.03] blur-[150px] pointer-events-none z-0 rounded-full"></div>
+
+  <!-- Navigation Bar -->
+  <nav class="w-full top-0 fixed z-50 bg-black/80 backdrop-blur-xl border-b border-white/10 h-20 transition-all duration-300">
+    <div class="max-w-[1440px] mx-auto px-6 md:px-20 flex justify-between items-center h-full">
+      
+      <!-- Logo -->
+      <a href="#" class="flex items-center gap-3 cursor-pointer group">
+        <svg class="w-8 h-8 text-white group-hover:text-brand-indigo transition-colors duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="text-xl font-bold tracking-tighter uppercase">
+          Security<span class="text-brand-indigo">Core</span>
+        </span>
+      </a>
+
+      <!-- Menu Control / Lang switch -->
+      <div class="flex items-center gap-4">
+        <!-- Lang Toggle -->
+        <button id="lang-toggle" class="sharp px-4 py-2 border border-white/20 text-white hover:border-brand-indigo hover:text-brand-indigo transition-all duration-300 text-xs font-semibold tracking-wider uppercase">
           <span class="lang-text" data-vi="English 🇬🇧" data-en="Tiếng Việt 🇻🇳">English 🇬🇧</span>
         </button>
-      </div>
-    </div>
-  </header>
 
-  <!-- Hero Section -->
-  <section class="hero">
-    <div class="container">
-      <h1 class="hero-title">
-        <span class="gradient-text" data-vi="Hệ Thống Chống Trộm & Điều Khiển PC Từ Xa" data-en="Advanced PC Remote Control & Anti-Theft System">Hệ Thống Chống Trộm & Điều Khiển PC Từ Xa</span>
-      </h1>
-      <p class="hero-subtitle" data-vi="Hệ sinh thái bảo mật đa nền tảng kết hợp Rust Service (SYSTEM privileges), Node.js Cloud Relay và ứng dụng Mobile điều khiển thời gian thực." data-en="Multi-platform security ecosystem combining system-level Rust Service, Node.js Cloud Relay, and a real-time Mobile controller.">
-        Hệ sinh thái bảo mật đa nền tảng kết hợp Rust Service (SYSTEM privileges), Node.js Cloud Relay và ứng dụng Mobile điều khiển thời gian thực.
-      </p>
-      
-      <div class="hero-actions">
-        <a href="https://github.com/psy-zney/Security" target="_blank" class="btn btn-primary" data-vi="Xem trên GitHub" data-en="View on GitHub">Xem trên GitHub</a>
-        <a href="https://github.com/psy-zney/Security/releases/download/v.1.0.0/Security.rar" class="btn btn-download" id="download-btn">
-          <span class="download-icon">📥</span>
-          <span data-vi="Tải xuống Security.rar" data-en="Download Security.rar">Tải xuống Security.rar</span>
+        <a href="https://github.com/psy-zney/Security" target="_blank" class="hidden sm:inline-flex sharp px-6 py-2 bg-white text-black font-semibold text-xs tracking-wider uppercase hover:bg-brand-indigo hover:text-white transition-all duration-300">
+          GitHub
         </a>
       </div>
     </div>
-  </section>
+  </nav>
 
-  <!-- Flow Diagram Section -->
-  <section class="flow-section">
-    <div class="container">
-      <h2 class="section-title" data-vi="Sơ Đồ Hoạt Động Hệ Thống" data-en="System Running Logic & Flow">Sơ Đồ Hoạt Động Hệ Thống</h2>
-      <p class="section-desc" data-vi="Rê chuột vào từng thành phần trong sơ đồ để xem vai trò chi tiết." data-en="Hover over any component in the diagram to inspect its detailed role.">
-        Rê chuột vào từng thành phần trong sơ đồ để xem vai trò chi tiết.
-      </p>
+  <main class="relative z-10 pt-20">
+    
+    <!-- Hero Section -->
+    <section class="min-h-[85vh] flex flex-col justify-center items-center text-center px-6 md:px-20 relative">
+      <div class="max-w-[1000px] space-y-6">
+        <span class="inline-flex items-center gap-2 px-3 py-1 border border-brand-indigo/30 bg-brand-indigo/5 text-brand-indigo text-xs font-bold tracking-[0.2em] uppercase sharp">
+          <span class="w-1.5 h-1.5 bg-brand-indigo rounded-full pulse-indicator"></span>
+          <span data-vi="Mạng Lưới Phòng Thủ Tự Trị" data-en="Autonomous Defense Grid">Mạng Lưới Phòng Thủ Tự Trị</span>
+        </span>
+        
+        <h1 class="text-4xl md:text-7xl font-extrabold tracking-tighter leading-none uppercase">
+          <span data-vi="BẢO VỆ TỐI ƯU CHO" data-en="ELITE PROTECTION FOR THE">BẢO VỆ TỐI ƯU CHO</span> <br/>
+          <span class="text-glow text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-brand-indigo" data-vi="THIẾT BỊ GHÉP NỐI" data-en="CONNECTED NODE">THIẾT BỊ GHÉP NỐI</span>
+        </h1>
+        
+        <p class="text-sm md:text-base text-gray-400 max-w-[700px] mx-auto leading-relaxed" data-vi="Hệ sinh thái bảo mật đa nền tảng kết hợp Rust Service (SYSTEM privileges), Node.js Cloud Relay và ứng dụng Mobile điều khiển thời gian thực." data-en="Military-grade encryption and remote anti-theft protocols designed for the high-stakes digital landscape. Deploy absolute control over your critical hardware infrastructure.">
+          Hệ sinh thái bảo mật đa nền tảng kết hợp Rust Service (SYSTEM privileges), Node.js Cloud Relay và ứng dụng Mobile điều khiển thời gian thực.
+        </p>
 
-      <!-- Interactive Diagram -->
-      <div class="diagram-wrapper">
-        <div class="interactive-diagram">
-          <!-- Mobile Node -->
-          <div class="node" id="node-mobile" data-info-vi="Ứng dụng di động (React Native) gửi các yêu cầu điều khiển như Chụp lén Camera, Đổi mật khẩu Windows, Khóa cổng USB qua Socket.io. Các request được ký bằng chữ ký HMAC-SHA256 kèm theo Timestamp hiện tại." data-info-en="Mobile App (React Native) sends control commands like Stealth Camera Capture, Windows Password Change, and USB Lock via Socket.io. Requests are signed using HMAC-SHA256 with a unique current Timestamp.">
-            <div class="node-icon">📱</div>
-            <h3 data-vi="Mobile App" data-en="Mobile App">Mobile App</h3>
-            <span class="tech-badge">React Native / Expo</span>
-          </div>
-
-          <!-- Connection 1 -->
-          <div class="connector con-1">
-            <div class="arrow">→</div>
-            <span class="connector-label">HMAC + Timestamp</span>
-          </div>
-
-          <!-- Relay Node -->
-          <div class="node" id="node-relay" data-info-vi="Máy chủ trung gian Node.js đóng vai trò điều phối. Nó kiểm tra Timestamp (chống tấn công phát lại - Replay attack trong 60s) và so khớp chữ ký HMAC-SHA256. Nếu PC đang offline, Relay sẽ lưu giữ tối đa 50 lệnh mới nhất trong Memory Queue." data-info-en="The Node.js central coordinator. It validates the timestamp to prevent replay attacks (< 60s window) and verifies the HMAC-SHA256 signature. If the target PC is offline, it queues up to 50 latest commands in its memory buffer.">
-            <div class="node-icon">☁️</div>
-            <h3 data-vi="Cloud Relay Server" data-en="Cloud Relay Server">Cloud Relay Server</h3>
-            <span class="tech-badge">Node.js / Socket.io</span>
-          </div>
-
-          <!-- Connection 2 -->
-          <div class="connector con-2">
-            <div class="arrow">→</div>
-            <span class="connector-label">Socket.io Tunnel</span>
-          </div>
-
-          <!-- Rust Service Node -->
-          <div class="node" id="node-service" data-info-vi="Windows Service chạy ngầm bằng Rust với quyền tối cao SYSTEM. Nó lắng nghe lệnh từ Cloud Relay, trực tiếp thực thi các tác vụ hệ thống (đổi mật khẩu Windows, tắt driver USB, bật camera chụp ảnh lén) và báo cáo trạng thái ngược lại." data-info-en="Rust background service running with SYSTEM privileges. It listens to commands from the Cloud Relay, directly executes core system tasks (modifying passwords, locking USB root hubs, stealth camera snap), and reports execution state back.">
-            <div class="node-icon">⚙️</div>
-            <h3 data-vi="Rust Windows Service" data-en="Rust Windows Service">Rust Windows Service</h3>
-            <span class="tech-badge">Rust / SYSTEM Privileges</span>
-          </div>
-
-          <!-- Connection 3 (Vertical/Local) -->
-          <div class="connector con-3">
-            <div class="arrow">↕</div>
-            <span class="connector-label">Named Pipe (IPC)</span>
-          </div>
-
-          <!-- Tauri PC UI Node -->
-          <div class="node" id="node-ui" data-info-vi="Giao diện người dùng PC (Tauri + React) giúp quản trị cấu hình (Địa chỉ Relay, Secret Key) tại máy tính và giao tiếp với Rust Service thông qua Named Pipe cục bộ." data-info-en="PC UI application (Tauri + React) allowing local configuration management (Relay URL, Secret Key) and interacting with the Rust Service via a local Named Pipe connection.">
-            <div class="node-icon">🖥️</div>
-            <h3 data-vi="PC UI Admin" data-en="PC UI Admin">PC UI Admin</h3>
-            <span class="tech-badge">Tauri / React + TS</span>
-          </div>
-        </div>
-
-        <!-- Detail Box -->
-        <div class="info-box" id="info-box">
-          <div class="info-placeholder" data-vi="Chọn hoặc rê chuột qua một thành phần ở trên để xem cách thức hoạt động." data-en="Hover or tap any component above to discover how it works.">
-            Chọn hoặc rê chuột qua một thành phần ở trên để xem cách thức hoạt động.
-          </div>
-          <div class="info-content hidden">
-            <h4 id="info-title">Component Name</h4>
-            <p id="info-desc">Component Description</p>
-          </div>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center pt-8">
+          <a href="https://github.com/psy-zney/Security" target="_blank" class="sharp px-10 py-4 bg-brand-indigo hover:bg-brand-indigo/80 text-white font-bold tracking-widest text-xs uppercase transition-all duration-300 text-center inline-block">
+            GitHub
+          </a>
+          <a href="https://github.com/psy-zney/Security/releases/download/v.1.0.0/Security.rar" class="sharp px-10 py-4 border border-white/20 hover:border-white hover:text-brand-indigo text-white font-bold tracking-widest text-xs uppercase transition-all duration-300 text-center inline-block" id="download-btn">
+            <span data-vi="Tải xuống Security.rar" data-en="Download Security.rar">Tải xuống Security.rar</span>
+          </a>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- Features Section -->
-  <section class="features">
-    <div class="container grid">
-      <div class="card">
-        <div class="card-icon">🔐</div>
-        <h3 data-vi="Xác thực HMAC Độc Quyền" data-en="HMAC-SHA256 Authentication">Xác thực HMAC Độc Quyền</h3>
-        <p data-vi="Không lưu trữ mật khẩu tĩnh. Mọi lệnh gửi đi bắt buộc phải được mã hóa chữ ký số và xác minh thời gian thực (hạn dùng trong 60 giây) để loại bỏ nguy cơ hacker đánh chặn và gửi lại tin nhắn (Replay Attack)." data-en="No static passwords stored on server. Every request is signed with a digital signature verified in real-time (expires in 60s) to completely avoid replay attacks from network sniffers."></p>
+      <!-- Thin scanning line divider -->
+      <div class="mt-24 w-full max-w-[1280px] relative scanner overflow-hidden border border-white/5 bg-white/5 h-px"></div>
+    </section>
+
+    <!-- Flow Diagram Section -->
+    <section class="py-24 px-6 md:px-20 max-w-[1440px] mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl md:text-5xl font-bold tracking-tight uppercase" data-vi="Sơ Đồ Hoạt Động Hệ Thống" data-en="The Remote Anti-Theft Chain">Sơ Đồ Hoạt Động Hệ Thống</h2>
+        <p class="text-sm text-gray-400 mt-2 max-w-xl mx-auto" data-vi="Chọn hoặc rê chuột qua một thành phần ở dưới để xem vai trò hoạt động." data-en="Hover or tap any component below to inspect its detailed role in the security chain.">
+          Chọn hoặc rê chuột qua một thành phần ở dưới để xem vai trò hoạt động.
+        </p>
       </div>
 
-      <div class="card">
-        <div class="card-icon">⚡</div>
-        <h3 data-vi="Quyền Hạn SYSTEM Cao Cấp" data-en="SYSTEM Privileged Execution">Quyền Hạn SYSTEM Cao Cấp</h3>
-        <p data-vi="Mã nguồn lõi viết bằng Rust chạy ở tầng nhân của Windows Service, cho phép can thiệp trực tiếp hệ thống như đổi mật khẩu quản trị, ngắt kết nối cổng USB phần cứng và điều khiển Camera ẩn." data-en="Core execution engine written in Rust running as a native Windows Service with SYSTEM privileges, granting permissions to lock USB hubs, change admin passwords, and control hardware camera."></p>
+      <!-- Interactive Node Grid/Flex -->
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch mb-8">
+        
+        <!-- Node 1: Mobile App -->
+        <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] indigo-border-glow flex flex-col justify-between" id="node-mobile" 
+             data-info-vi="Ứng dụng di động (React Native) gửi các yêu cầu điều khiển như Chụp ảnh ngầm, Đổi mật khẩu Windows, Khóa cổng USB qua Socket.io. Các request được ký bằng chữ ký HMAC-SHA256 kèm theo Timestamp hiện tại."
+             data-info-en="Mobile App (React Native) sends control commands like Stealth Camera Capture, Windows Password Change, and USB Lock via Socket.io. Requests are signed using HMAC-SHA256 with a unique current Timestamp.">
+          <div class="space-y-4">
+            <div class="text-brand-indigo text-4xl">📱</div>
+            <h3 class="text-lg font-bold uppercase tracking-wide" data-vi="Mobile App" data-en="Mobile App">Mobile App</h3>
+            <span class="inline-block text-[10px] font-bold tracking-wider px-2 py-0.5 bg-white/5 text-gray-400 sharp uppercase">React Native</span>
+          </div>
+          <div class="mt-6 text-xs text-brand-indigo font-bold tracking-wider hover:underline" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
+        </div>
+
+        <!-- Node 2: Relay Cloud -->
+        <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] indigo-border-glow flex flex-col justify-between" id="node-relay"
+             data-info-vi="Máy chủ trung gian Node.js đóng vai trò điều phối. Nó kiểm tra Timestamp (chống tấn công phát lại - Replay attack trong 60s) và so khớp chữ ký HMAC-SHA256. Nếu PC đang offline, Relay sẽ lưu giữ tối đa 50 lệnh mới nhất trong Memory Queue."
+             data-info-en="The Node.js central coordinator. It validates the timestamp to prevent replay attacks (< 60s window) and verifies the HMAC-SHA256 signature. If the target PC is offline, it queues up to 50 latest commands in its memory buffer.">
+          <div class="space-y-4">
+            <div class="text-brand-indigo text-4xl">☁️</div>
+            <h3 class="text-lg font-bold uppercase tracking-wide" data-vi="Cloud Relay Server" data-en="Cloud Relay Server">Cloud Relay Server</h3>
+            <span class="inline-block text-[10px] font-bold tracking-wider px-2 py-0.5 bg-white/5 text-gray-400 sharp uppercase">Node.js / Socket.io</span>
+          </div>
+          <div class="mt-6 text-xs text-brand-indigo font-bold tracking-wider hover:underline" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
+        </div>
+
+        <!-- Node 3: Rust Service -->
+        <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] indigo-border-glow flex flex-col justify-between" id="node-service"
+             data-info-vi="Windows Service chạy ngầm bằng Rust với quyền tối cao SYSTEM. Nó lắng nghe lệnh từ Cloud Relay, trực tiếp thực thi các tác vụ hệ thống (đổi mật khẩu Windows, tắt driver USB, bật camera chụp ảnh lén) và báo cáo trạng thái ngược lại."
+             data-info-en="Rust background service running with SYSTEM privileges. It listens to commands from the Cloud Relay, directly executes core system tasks (modifying passwords, locking USB root hubs, stealth camera snap), and reports execution state back.">
+          <div class="space-y-4">
+            <div class="text-brand-indigo text-4xl">⚙️</div>
+            <h3 class="text-lg font-bold uppercase tracking-wide" data-vi="Rust Windows Service" data-en="Rust Windows Service">Rust Windows Service</h3>
+            <span class="inline-block text-[10px] font-bold tracking-wider px-2 py-0.5 bg-white/5 text-gray-400 sharp uppercase">Rust / SYSTEM Privileges</span>
+          </div>
+          <div class="mt-6 text-xs text-brand-indigo font-bold tracking-wider hover:underline" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
+        </div>
+
+        <!-- Node 4: PC UI Admin -->
+        <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] indigo-border-glow flex flex-col justify-between" id="node-ui"
+             data-info-vi="Giao diện người dùng PC (Tauri + React) giúp quản trị cấu hình (Địa chỉ Relay, Secret Key) tại máy tính và giao tiếp với Rust Service thông qua Named Pipe cục bộ."
+             data-info-en="PC UI application (Tauri + React) allowing local configuration management (Relay URL, Secret Key) and interacting with the Rust Service via a local Named Pipe connection.">
+          <div class="space-y-4">
+            <div class="text-brand-indigo text-4xl">🖥️</div>
+            <h3 class="text-lg font-bold uppercase tracking-wide" data-vi="PC UI Admin" data-en="PC UI Admin">PC UI Admin</h3>
+            <span class="inline-block text-[10px] font-bold tracking-wider px-2 py-0.5 bg-white/5 text-gray-400 sharp uppercase">Tauri / React + TS</span>
+          </div>
+          <div class="mt-6 text-xs text-brand-indigo font-bold tracking-wider hover:underline" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
+        </div>
+
       </div>
 
-      <div class="card">
-        <div class="card-icon">📬</div>
-        <h3 data-vi="Hàng Đợi Ngoại Tuyến (Queue)" data-en="Offline Command Queue">Hàng Đợi Ngoại Tuyến (Queue)</h3>
-        <p data-vi="Khi laptop của bạn bị tắt hoặc mất kết nối Internet, các lệnh gửi từ Mobile sẽ được hàng đợi máy chủ Relay lưu đệm tối đa 50 lệnh và tự động 'xả' để thực thi ngay khi máy tính online trở lại." data-en="If your laptop is shut down or offline, commands sent from the mobile app are safely buffered in the Relay queue (up to 50 commands) and executed automatically once the PC goes online."></p>
+      <!-- Command Center Terminal Detail Box -->
+      <div class="glass-panel sharp p-6 relative overflow-hidden" id="info-box">
+        <div class="absolute top-0 right-0 p-3 text-[10px] font-mono text-white/30 tracking-wider">COMMAND CENTER TERMINAL</div>
+        <div class="info-placeholder font-mono text-xs text-gray-500 italic" data-vi="[Chờ lệnh] Vui lòng click chọn một Module ở trên để trích xuất Telemetry..." data-en="[Awaiting uplink] Select a module above to inspect system telemetry details...">
+          [Chờ lệnh] Vui lòng click chọn một Module ở trên để trích xuất Telemetry...
+        </div>
+        <div class="info-content hidden space-y-2">
+          <h4 id="info-title" class="text-sm font-bold tracking-widest text-brand-indigo uppercase font-mono">Component Name</h4>
+          <p id="info-desc" class="text-sm text-gray-300 font-mono leading-relaxed">Component Description</p>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Security warnings -->
-  <section class="security-banner">
-    <div class="container text-center">
-      <div class="alert-box">
-        <span class="alert-icon">⚠️</span>
-        <h3 data-vi="Khuyến Cáo Bảo Mật" data-en="Security Advisory">Khuyến Cáo Bảo Mật</h3>
-        <p data-vi="Khi triển khai dự án này lên máy chủ công cộng (public): Bạn bắt buộc phải đổi SECRET_KEY mặc định sang khóa bí mật của riêng bạn và cấu hình sử dụng HTTPS/WSS (SSL/TLS) để đảm bảo an toàn tuyệt đối." data-en="When deploying this project to a public environment: You must replace the default SECRET_KEY with a private custom string and ensure you connect through HTTPS/WSS (SSL/TLS) for ultimate security."></p>
+    <!-- Features Section -->
+    <section class="py-24 px-6 md:px-20 bg-brand-gray/30 border-y border-white/5">
+      <div class="max-w-[1440px] mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-4">
+          <h2 class="text-3xl md:text-5xl font-bold tracking-tight uppercase" data-vi="Tính năng nâng cao" data-en="Surgical Precision. Elite Control.">Tính năng nâng cao</h2>
+          <span class="font-mono text-xs text-brand-indigo tracking-widest">SEC_CORE_V4.0 // ACTIVE_DEFENSE</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          <!-- Card 1 -->
+          <div class="glass-panel sharp p-8 hover:bg-white/[0.01] transition-all duration-500 group">
+            <div class="mb-8 flex justify-between items-center">
+              <span class="text-3xl text-brand-indigo">🔐</span>
+              <span class="font-mono text-xs text-white/20">01</span>
+            </div>
+            <h3 class="text-xl font-bold uppercase tracking-tight mb-4" data-vi="Xác thực HMAC Độc Quyền" data-en="HMAC-SHA256 Auth">Xác thực HMAC Độc Quyền</h3>
+            <p class="text-sm text-gray-400 leading-relaxed" data-vi="Không lưu trữ mật khẩu tĩnh. Mọi lệnh gửi đi bắt buộc phải được mã hóa chữ ký số và xác minh thời gian thực (hạn dùng trong 60 giây) để loại bỏ nguy cơ hacker đánh chặn và gửi lại tin nhắn (Replay Attack)." data-en="No static passwords stored on server. Every request is signed with a digital signature verified in real-time (expires in 60s) to completely avoid replay attacks from network sniffers.">
+              Không lưu trữ mật khẩu tĩnh. Mọi lệnh gửi đi bắt buộc phải được mã hóa chữ ký số và xác minh thời gian thực (hạn dùng trong 60 giây) để loại bỏ nguy cơ hacker đánh chặn và gửi lại tin nhắn (Replay Attack).
+            </p>
+            <div class="mt-8 h-px bg-white/10 group-hover:bg-brand-indigo/50 transition-colors duration-500"></div>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="glass-panel sharp p-8 hover:bg-white/[0.01] transition-all duration-500 group">
+            <div class="mb-8 flex justify-between items-center">
+              <span class="text-3xl text-brand-indigo">⚡</span>
+              <span class="font-mono text-xs text-white/20">02</span>
+            </div>
+            <h3 class="text-xl font-bold uppercase tracking-tight mb-4" data-vi="Quyền Hạn SYSTEM Cao Cấp" data-en="SYSTEM Privileged Execution">Quyền Hạn SYSTEM Cao Cấp</h3>
+            <p class="text-sm text-gray-400 leading-relaxed" data-vi="Mã nguồn lõi viết bằng Rust chạy ở tầng nhân của Windows Service, cho phép can thiệp trực tiếp hệ thống như đổi mật khẩu quản trị, ngắt kết nối cổng USB phần cứng và điều khiển Camera ẩn." data-en="Core execution engine written in Rust running as a native Windows Service with SYSTEM privileges, granting permissions to lock USB hubs, change admin passwords, and control hardware camera.">
+              Mã nguồn lõi viết bằng Rust chạy ở tầng nhân của Windows Service, cho phép can thiệp trực tiếp hệ thống như đổi mật khẩu quản trị, ngắt kết nối cổng USB phần cứng và điều khiển Camera ẩn.
+            </p>
+            <div class="mt-8 h-px bg-white/10 group-hover:bg-brand-indigo/50 transition-colors duration-500"></div>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="glass-panel sharp p-8 hover:bg-white/[0.01] transition-all duration-500 group">
+            <div class="mb-8 flex justify-between items-center">
+              <span class="text-3xl text-brand-indigo">📬</span>
+              <span class="font-mono text-xs text-white/20">03</span>
+            </div>
+            <h3 class="text-xl font-bold uppercase tracking-tight mb-4" data-vi="Hàng Đợi Ngoại Tuyến (Queue)" data-en="Offline Command Queue">Hàng Đợi Ngoại Tuyến (Queue)</h3>
+            <p class="text-sm text-gray-400 leading-relaxed" data-vi="Khi laptop của bạn bị tắt hoặc mất kết nối Internet, các lệnh gửi từ Mobile sẽ được hàng đợi máy chủ Relay lưu đệm tối đa 50 lệnh và tự động 'xả' để thực thi ngay khi máy tính online trở lại." data-en="If your laptop is shut down or offline, commands sent from the mobile app are safely buffered in the Relay queue (up to 50 commands) and executed automatically once the PC goes online.">
+              Khi laptop của bạn bị tắt hoặc mất kết nối Internet, các lệnh gửi từ Mobile sẽ được hàng đợi máy chủ Relay lưu đệm tối đa 50 lệnh và tự động 'xả' để thực thi ngay khi máy tính online trở lại.
+            </p>
+            <div class="mt-8 h-px bg-white/10 group-hover:bg-brand-indigo/50 transition-colors duration-500"></div>
+          </div>
+
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
+
+    <!-- Compliance / Security Warning Banner -->
+    <section class="py-16 px-6 md:px-20 bg-red-950/20 border-y border-red-500/20">
+      <div class="max-w-[1440px] mx-auto flex items-start gap-4">
+        <span class="text-2xl text-red-500">⚠️</span>
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-red-500 tracking-[0.25em] uppercase" data-vi="KHUYẾN CÁO BẢO MẬT // THÔNG BÁO QUAN TRỌNG" data-en="SECURITY ADVISORY // COMPLIANCE NOTICE">KHUYẾN CÁO BẢO MẬT // THÔNG BÁO QUAN TRỌNG</h4>
+          <p class="text-xs text-gray-400 font-mono leading-relaxed" data-vi="Khi triển khai dự án này lên máy chủ công cộng (public): Bạn bắt buộc phải đổi SECRET_KEY mặc định sang khóa bí mật của riêng bạn và cấu hình sử dụng HTTPS/WSS (SSL/TLS) để đảm bảo an toàn tuyệt đối. Mọi giao thức Khóa Thiết Bị Từ Xa là không thể đảo ngược trừ khi truy cập qua thông tin xác thực chính xác." data-en="All Remote Node Lockdown protocols are irreversible unless accessed via Verified Credentials. When deploying this project to a public environment: You must replace the default SECRET_KEY with a private custom string and ensure you connect through HTTPS/WSS (SSL/TLS) for ultimate security.">
+            Khi triển khai dự án này lên máy chủ công cộng (public): Bạn bắt buộc phải đổi SECRET_KEY mặc định sang khóa bí mật của riêng bạn và cấu hình sử dụng HTTPS/WSS (SSL/TLS) để đảm bảo an toàn tuyệt đối. Mọi giao thức Khóa Thiết Bị Từ Xa là không thể đảo ngược trừ khi truy cập qua thông tin xác thực chính xác.
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
 
   <!-- Footer -->
-  <footer>
-    <div class="container text-center">
-      <p>&copy; 2026 Security Core Project. Built with premium design and system security.</p>
+  <footer class="w-full py-12 bg-black border-t border-white/10 mt-12 relative z-10">
+    <div class="max-w-[1440px] mx-auto px-6 md:px-20 flex flex-col md:flex-row justify-between items-center gap-6">
+      <div class="flex items-center gap-3">
+        <svg class="w-6 h-6 text-brand-indigo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="text-sm font-bold tracking-tighter uppercase">Security Core</span>
+      </div>
+      <p class="text-xs text-gray-500 font-mono">&copy; 2026 SECURITY CORE PROJECT. ALL RIGHTS RESERVED.</p>
     </div>
   </footer>
 
+  <!-- App logic JavaScript -->
   <script src="app.js"></script>
 </body>
 </html>

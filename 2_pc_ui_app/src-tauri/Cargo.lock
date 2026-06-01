@@ -3,6 +3,23 @@
 version = 4
 
 [[package]]
+name = "SecurityApp"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "escapi",
+ "image",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-oauth",
+ "tauri-plugin-opener",
+ "windows 0.62.2",
+ "winreg 0.56.0",
+]
+
+[[package]]
 name = "adler2"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4270,23 +4287,6 @@ dependencies = [
  "webview2-com",
  "window-vibrancy",
  "windows 0.61.3",
-]
-
-[[package]]
-name = "tauri-app"
-version = "0.1.0"
-dependencies = [
- "base64 0.22.1",
- "escapi",
- "image",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-oauth",
- "tauri-plugin-opener",
- "windows 0.62.2",
- "winreg 0.56.0",
 ]
 
 [[package]]
