@@ -13,11 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const textTranslations = {
     vi: {
       langBtn: 'English 🇬🇧',
-      placeholder: 'Chọn hoặc rê chuột qua một thành phần ở trên để xem cách thức hoạt động.',
+      placeholder: '[Chờ lệnh] Vui lòng click chọn một Module ở trên để trích xuất Telemetry...',
     },
     en: {
       langBtn: 'Tiếng Việt 🇻🇳',
-      placeholder: 'Hover or tap any component above to discover how it works.',
+      placeholder: '[Awaiting uplink] Select a module above to inspect system telemetry details...',
     }
   };
 
