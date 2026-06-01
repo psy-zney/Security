@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Core - Advanced Remote Anti-Theft System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Background Glows -->
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="header-container">
+      <div class="logo">
+        <span class="shield-icon">🛡️</span>
+        <span class="logo-text">Security<span class="accent-text">Core</span></span>
+      </div>
+      <div class="controls">
+        <button id="lang-toggle" class="btn btn-secondary">
+          <span class="lang-text" data-vi="English 🇬🇧" data-en="Tiếng Việt 🇻🇳">English 🇬🇧</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <h1 class="hero-title">
+        <span class="gradient-text" data-vi="Hệ Thống Chống Trộm & Điều Khiển PC Từ Xa" data-en="Advanced PC Remote Control & Anti-Theft System">Hệ Thống Chống Trộm & Điều Khiển PC Từ Xa</span>
+      </h1>
+      <p class="hero-subtitle" data-vi="Hệ sinh thái bảo mật đa nền tảng kết hợp Rust Service (SYSTEM privileges), Node.js Cloud Relay và ứng dụng Mobile điều khiển thời gian thực." data-en="Multi-platform security ecosystem combining system-level Rust Service, Node.js Cloud Relay, and a real-time Mobile controller.">
+        Hệ sinh thái bảo mật đa nền tảng kết hợp Rust Service (SYSTEM privileges), Node.js Cloud Relay và ứng dụng Mobile điều khiển thời gian thực.
+      </p>
+      
+      <div class="hero-actions">
+        <a href="https://github.com/psy-zney/Security" target="_blank" class="btn btn-primary" data-vi="Xem trên GitHub" data-en="View on GitHub">Xem trên GitHub</a>
+        <a href="../Security.rar" class="btn btn-download" id="download-btn">
+          <span class="download-icon">📥</span>
+          <span data-vi="Tải xuống Security.rar" data-en="Download Security.rar">Tải xuống Security.rar</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Flow Diagram Section -->
+  <section class="flow-section">
+    <div class="container">
+      <h2 class="section-title" data-vi="Sơ Đồ Hoạt Động Hệ Thống" data-en="System Running Logic & Flow">Sơ Đồ Hoạt Động Hệ Thống</h2>
+      <p class="section-desc" data-vi="Rê chuột vào từng thành phần trong sơ đồ để xem vai trò chi tiết." data-en="Hover over any component in the diagram to inspect its detailed role.">
+        Rê chuột vào từng thành phần trong sơ đồ để xem vai trò chi tiết.
+      </p>
+
+      <!-- Interactive Diagram -->
+      <div class="diagram-wrapper">
+        <div class="interactive-diagram">
+          <!-- Mobile Node -->
+          <div class="node" id="node-mobile" data-info-vi="Ứng dụng di động (React Native) gửi các yêu cầu điều khiển như Chụp lén Camera, Đổi mật khẩu Windows, Khóa cổng USB qua Socket.io. Các request được ký bằng chữ ký HMAC-SHA256 kèm theo Timestamp hiện tại." data-info-en="Mobile App (React Native) sends control commands like Stealth Camera Capture, Windows Password Change, and USB Lock via Socket.io. Requests are signed using HMAC-SHA256 with a unique current Timestamp.">
+            <div class="node-icon">📱</div>
+            <h3 data-vi="Mobile App" data-en="Mobile App">Mobile App</h3>
+            <span class="tech-badge">React Native / Expo</span>
+          </div>
+
+          <!-- Connection 1 -->
+          <div class="connector con-1">
+            <div class="arrow">→</div>
+            <span class="connector-label">HMAC + Timestamp</span>
+          </div>
+
+          <!-- Relay Node -->
+          <div class="node" id="node-relay" data-info-vi="Máy chủ trung gian Node.js đóng vai trò điều phối. Nó kiểm tra Timestamp (chống tấn công phát lại - Replay attack trong 60s) và so khớp chữ ký HMAC-SHA256. Nếu PC đang offline, Relay sẽ lưu giữ tối đa 50 lệnh mới nhất trong Memory Queue." data-info-en="The Node.js central coordinator. It validates the timestamp to prevent replay attacks (< 60s window) and verifies the HMAC-SHA256 signature. If the target PC is offline, it queues up to 50 latest commands in its memory buffer.">
+            <div class="node-icon">☁️</div>
+            <h3 data-vi="Cloud Relay Server" data-en="Cloud Relay Server">Cloud Relay Server</h3>
+            <span class="tech-badge">Node.js / Socket.io</span>
+          </div>
+
+          <!-- Connection 2 -->
+          <div class="connector con-2">
+            <div class="arrow">→</div>
+            <span class="connector-label">Socket.io Tunnel</span>
+          </div>
+
+          <!-- Rust Service Node -->
+          <div class="node" id="node-service" data-info-vi="Windows Service chạy ngầm bằng Rust với quyền tối cao SYSTEM. Nó lắng nghe lệnh từ Cloud Relay, trực tiếp thực thi các tác vụ hệ thống (đổi mật khẩu Windows, tắt driver USB, bật camera chụp ảnh lén) và báo cáo trạng thái ngược lại." data-info-en="Rust background service running with SYSTEM privileges. It listens to commands from the Cloud Relay, directly executes core system tasks (modifying passwords, locking USB root hubs, stealth camera snap), and reports execution state back.">
+            <div class="node-icon">⚙️</div>
+            <h3 data-vi="Rust Windows Service" data-en="Rust Windows Service">Rust Windows Service</h3>
+            <span class="tech-badge">Rust / SYSTEM Privileges</span>
+          </div>
+
+          <!-- Connection 3 (Vertical/Local) -->
+          <div class="connector con-3">
+            <div class="arrow">↕</div>
+            <span class="connector-label">Named Pipe (IPC)</span>
+          </div>
+
+          <!-- Tauri PC UI Node -->
+          <div class="node" id="node-ui" data-info-vi="Giao diện người dùng PC (Tauri + React) giúp quản trị cấu hình (Địa chỉ Relay, Secret Key) tại máy tính và giao tiếp với Rust Service thông qua Named Pipe cục bộ." data-info-en="PC UI application (Tauri + React) allowing local configuration management (Relay URL, Secret Key) and interacting with the Rust Service via a local Named Pipe connection.">
+            <div class="node-icon">🖥️</div>
+            <h3 data-vi="PC UI Admin" data-en="PC UI Admin">PC UI Admin</h3>
+            <span class="tech-badge">Tauri / React + TS</span>
+          </div>
+        </div>
+
+        <!-- Detail Box -->
+        <div class="info-box" id="info-box">
+          <div class="info-placeholder" data-vi="Chọn hoặc rê chuột qua một thành phần ở trên để xem cách thức hoạt động." data-en="Hover or tap any component above to discover how it works.">
+            Chọn hoặc rê chuột qua một thành phần ở trên để xem cách thức hoạt động.
+          </div>
+          <div class="info-content hidden">
+            <h4 id="info-title">Component Name</h4>
+            <p id="info-desc">Component Description</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features">
+    <div class="container grid">
+      <div class="card">
+        <div class="card-icon">🔐</div>
+        <h3 data-vi="Xác thực HMAC Độc Quyền" data-en="HMAC-SHA256 Authentication">Xác thực HMAC Độc Quyền</h3>
+        <p data-vi="Không lưu trữ mật khẩu tĩnh. Mọi lệnh gửi đi bắt buộc phải được mã hóa chữ ký số và xác minh thời gian thực (hạn dùng trong 60 giây) để loại bỏ nguy cơ hacker đánh chặn và gửi lại tin nhắn (Replay Attack)." data-en="No static passwords stored on server. Every request is signed with a digital signature verified in real-time (expires in 60s) to completely avoid replay attacks from network sniffers."></p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <h3 data-vi="Quyền Hạn SYSTEM Cao Cấp" data-en="SYSTEM Privileged Execution">Quyền Hạn SYSTEM Cao Cấp</h3>
+        <p data-vi="Mã nguồn lõi viết bằng Rust chạy ở tầng nhân của Windows Service, cho phép can thiệp trực tiếp hệ thống như đổi mật khẩu quản trị, ngắt kết nối cổng USB phần cứng và điều khiển Camera ẩn." data-en="Core execution engine written in Rust running as a native Windows Service with SYSTEM privileges, granting permissions to lock USB hubs, change admin passwords, and control hardware camera."></p>
+      </div>
+
+      <div class="card">
+        <div class="card-icon">📬</div>
+        <h3 data-vi="Hàng Đợi Ngoại Tuyến (Queue)" data-en="Offline Command Queue">Hàng Đợi Ngoại Tuyến (Queue)</h3>
+        <p data-vi="Khi laptop của bạn bị tắt hoặc mất kết nối Internet, các lệnh gửi từ Mobile sẽ được hàng đợi máy chủ Relay lưu đệm tối đa 50 lệnh và tự động 'xả' để thực thi ngay khi máy tính online trở lại." data-en="If your laptop is shut down or offline, commands sent from the mobile app are safely buffered in the Relay queue (up to 50 commands) and executed automatically once the PC goes online."></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Security warnings -->
+  <section class="security-banner">
+    <div class="container text-center">
+      <div class="alert-box">
+        <span class="alert-icon">⚠️</span>
+        <h3 data-vi="Khuyến Cáo Bảo Mật" data-en="Security Advisory">Khuyến Cáo Bảo Mật</h3>
+        <p data-vi="Khi triển khai dự án này lên máy chủ công cộng (public): Bạn bắt buộc phải đổi SECRET_KEY mặc định sang khóa bí mật của riêng bạn và cấu hình sử dụng HTTPS/WSS (SSL/TLS) để đảm bảo an toàn tuyệt đối." data-en="When deploying this project to a public environment: You must replace the default SECRET_KEY with a private custom string and ensure you connect through HTTPS/WSS (SSL/TLS) for ultimate security."></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container text-center">
+      <p>&copy; 2026 Security Core Project. Built with premium design and system security.</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
