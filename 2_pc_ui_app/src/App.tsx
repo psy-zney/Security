@@ -31,7 +31,7 @@ function App() {
   const [loginError, setLoginError] = useState("");
   
   const [machineId, setMachineId] = useState("fetching...");
-  const [relayUrl, setRelayUrl] = useState("http://127.0.0.1:3000");
+  const [relayUrl, setRelayUrl] = useState("https://security-relay.onrender.com");
   
   useEffect(() => {
     invoke<string>("get_machine_id")

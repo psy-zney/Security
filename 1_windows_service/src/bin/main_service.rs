@@ -274,8 +274,8 @@ struct AppConfig {
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            relay_url: "http://127.0.0.1:3000".to_string(),
-            secret_key: "DEFAULT_SECRET_KEY".to_string(),
+            relay_url: "https://security-relay.onrender.com".to_string(),
+            secret_key: "d8a6f42b3e70d195f269a847bc83de9ef0a41d726b91a58c0df1bde7f4019e2c".to_string(),
         }
     }
 }
