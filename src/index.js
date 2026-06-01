@@ -26,30 +26,56 @@ const io = new Server(server, {
   }
 });
 
-// Middleware xác thực HMAC-SHA256 có chống Replay-Attack
+// Bộ nhớ đệm lưu trữ khóa bảo mật của các PC: Map<deviceId, secretKey>
+const deviceKeys = new Map();
+
+// Middleware xác thực động
 io.use((socket, next) => {
-  // Lấy dữ liệu từ auth (JS Client) HOẶC từ headers/query (Rust Client)
-  let timestamp = socket.handshake.auth?.timestamp || socket.handshake.headers['x-timestamp'] || socket.handshake.query?.timestamp;
-  let signature = socket.handshake.auth?.signature || socket.handshake.headers['x-signature'] || socket.handshake.query?.signature;
+  const query = socket.handshake.query || {};
+  const clientType = query.clientType || socket.handshake.auth?.clientType || 'unknown';
+  const deviceId = query.deviceId || socket.handshake.auth?.deviceId;
+
+  if (!deviceId) {
+    return next(new Error('Authentication Error: Missing deviceId'));
+  }
+
+  // 1. Nếu là PC Service kết nối: Đăng ký khóa bí mật ngẫu nhiên của máy đó vào bộ nhớ đệm
+  if (clientType === 'pc_service') {
+    const secretKey = query.secretKey;
+    if (!secretKey) {
+      return next(new Error('Authentication Error: Missing secretKey for PC service'));
+    }
+    deviceKeys.set(deviceId, secretKey);
+    console.log(`[i] Đã ghi nhận Khóa bí mật cho thiết bị: ${deviceId}`);
+    return next();
+  }
+
+  // 2. Nếu là các client khác (Mobile App, PC UI): Cần chữ ký HMAC
+  const timestamp = query.timestamp || socket.handshake.auth?.timestamp;
+  const signature = query.signature || socket.handshake.auth?.signature;
 
   if (!timestamp || !signature) {
     return next(new Error('Authentication Error: Missing timestamp or signature'));
   }
 
-  // 1. Kiểm tra thời gian: Chỉ chấp nhận nếu request được tạo ra trong vòng 60 giây gần đây.
-  // Lớp bảo vệ bổ sung: Hacker không thể chép lại signature và gửi lại sau đó (Replay attack).
+  // Chống Replay attack (hạn dùng 60s)
   const now = Date.now();
   if (Math.abs(now - parseInt(timestamp)) > 60 * 1000) {
     return next(new Error('Authentication Error: Token Expired or Invalid Timeout'));
   }
 
-  // 2. Tạo một mã băm sha256 chuẩn để kiểm tra (so khớp chữ ký).
+  // Lấy khóa bí mật tương ứng của thiết bị
+  const secretKey = deviceKeys.get(deviceId);
+  if (!secretKey) {
+    return next(new Error('Authentication Error: PC is not registered or offline'));
+  }
+
+  // So khớp chữ ký
   const expectedSignature = crypto
-    .createHmac('sha256', SECRET_KEY)
+    .createHmac('sha256', secretKey)
     .update(timestamp.toString())
     .digest('hex');
 
-  // Đề phòng lỗi độ dài khác nhau khi so khớp (tránh timing attack)
   if (signature.length === expectedSignature.length && 
       crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
     next();
