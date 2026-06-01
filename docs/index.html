@@ -90,6 +90,17 @@
       animation: scan 4s linear infinite;
     }
 
+    /* Blinking terminal cursor */
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .blink-cursor::after {
+      content: '_';
+      animation: blink 1s step-start infinite;
+      color: #6C63FF;
+    }
+
     /* Pulse effect */
     @keyframes pulse-dot {
       0%, 100% { transform: scale(1); opacity: 0.5; }
@@ -138,34 +149,72 @@
   <main class="relative z-10 pt-20">
     
     <!-- Hero Section -->
-    <section class="min-h-[85vh] flex flex-col justify-center items-center text-center px-6 md:px-20 relative">
-      <div class="max-w-[1000px] space-y-6">
-        <span class="inline-flex items-center gap-2 px-3 py-1 border border-brand-indigo/30 bg-brand-indigo/5 text-brand-indigo text-xs font-bold tracking-[0.2em] uppercase sharp">
-          <span class="w-1.5 h-1.5 bg-brand-indigo rounded-full pulse-indicator"></span>
-          <span data-vi="Mạng Lưới Phòng Thủ Tự Trị" data-en="Autonomous Defense Grid">Mạng Lưới Phòng Thủ Tự Trị</span>
-        </span>
-        
-        <h1 class="text-4xl md:text-7xl font-extrabold tracking-tighter leading-none uppercase">
-          <span data-vi="BẢO VỆ TỐI ƯU CHO" data-en="ELITE PROTECTION FOR THE">BẢO VỆ TỐI ƯU CHO</span> <br/>
-          <span class="text-glow text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-brand-indigo" data-vi="THIẾT BỊ GHÉP NỐI" data-en="CONNECTED NODE">THIẾT BỊ GHÉP NỐI</span>
-        </h1>
-        
-        <p class="text-sm md:text-base text-gray-400 max-w-[700px] mx-auto leading-relaxed" data-vi="Hệ sinh thái bảo mật đa nền tảng kết hợp Rust Service (SYSTEM privileges), Node.js Cloud Relay và ứng dụng Mobile điều khiển thời gian thực." data-en="Military-grade encryption and remote anti-theft protocols designed for the high-stakes digital landscape. Deploy absolute control over your critical hardware infrastructure.">
-          Hệ sinh thái bảo mật đa nền tảng kết hợp Rust Service (SYSTEM privileges), Node.js Cloud Relay và ứng dụng Mobile điều khiển thời gian thực.
-        </p>
+    <section class="min-h-[85vh] flex items-center px-6 md:px-20 max-w-[1440px] mx-auto relative z-10 py-12">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center w-full">
+        <!-- Left: Text content -->
+        <div class="lg:col-span-7 space-y-6 text-left">
+          <span class="inline-flex items-center gap-2 px-3 py-1 border border-brand-indigo/30 bg-brand-indigo/5 text-brand-indigo text-xs font-bold tracking-[0.2em] uppercase sharp">
+            <span class="w-1.5 h-1.5 bg-brand-indigo rounded-full pulse-indicator"></span>
+            <span data-vi="Mạng Lưới Phòng Thủ Tự Trị" data-en="Autonomous Defense Grid">Mạng Lưới Phòng Thủ Tự Trị</span>
+          </span>
+          
+          <h1 class="text-4xl md:text-6xl font-extrabold tracking-tighter leading-none uppercase">
+            <span data-vi="BẢO VỆ TỐI ƯU CHO" data-en="ELITE PROTECTION FOR THE">BẢO VỆ TỐI ƯU CHO</span> <br/>
+            <span class="text-glow text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-brand-indigo" data-vi="THIẾT BỊ GHÉP NỐI" data-en="CONNECTED NODE">THIẾT BỊ GHÉP NỐI</span>
+          </h1>
+          
+          <p class="text-sm md:text-base text-gray-400 max-w-[650px] leading-relaxed" data-vi="Hệ sinh thái bảo mật đa nền tảng kết hợp Rust Service (SYSTEM privileges), Node.js Cloud Relay và ứng dụng Mobile điều khiển thời gian thực." data-en="Military-grade encryption and remote anti-theft protocols designed for the high-stakes digital landscape. Deploy absolute control over your critical hardware infrastructure.">
+            Hệ sinh thái bảo mật đa nền tảng kết hợp Rust Service (SYSTEM privileges), Node.js Cloud Relay và ứng dụng Mobile điều khiển thời gian thực.
+          </p>
 
-        <div class="flex flex-col sm:flex-row gap-4 justify-center pt-8">
-          <a href="https://github.com/psy-zney/Security" target="_blank" class="sharp px-10 py-4 bg-brand-indigo hover:bg-brand-indigo/80 text-white font-bold tracking-widest text-xs uppercase transition-all duration-300 text-center inline-block">
-            GitHub
-          </a>
-          <a href="https://github.com/psy-zney/Security/releases/download/v.1.0.0/Security.rar" class="sharp px-10 py-4 border border-white/20 hover:border-white hover:text-brand-indigo text-white font-bold tracking-widest text-xs uppercase transition-all duration-300 text-center inline-block" id="download-btn">
-            <span data-vi="Tải xuống Security.rar" data-en="Download Security.rar">Tải xuống Security.rar</span>
-          </a>
+          <div class="flex flex-col sm:flex-row gap-4 pt-4">
+            <a href="https://github.com/psy-zney/Security" target="_blank" class="sharp px-10 py-4 bg-brand-indigo hover:bg-brand-indigo/80 text-white font-bold tracking-widest text-xs uppercase transition-all duration-300 text-center inline-block">
+              GitHub
+            </a>
+            <a href="https://github.com/psy-zney/Security/releases/download/v.1.0.0/Security.rar" class="sharp px-10 py-4 border border-white/20 hover:border-white hover:text-brand-indigo text-white font-bold tracking-widest text-xs uppercase transition-all duration-300 text-center inline-block" id="download-btn">
+              <span data-vi="Tải xuống Security.rar" data-en="Download Security.rar">Tải xuống Security.rar</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Right: Radar Graphic -->
+        <div class="lg:col-span-5 flex justify-center items-center relative h-[350px] lg:h-[450px]">
+          <!-- Concentric Outer circle (Slow Spin) -->
+          <div class="absolute w-72 h-72 lg:w-96 lg:h-96 border border-dashed border-white/10 rounded-full animate-[spin_40s_linear_infinite] flex items-center justify-center">
+            <!-- Concentric Mid circle (Slow Reverse Spin) -->
+            <div class="w-56 h-56 lg:w-72 lg:h-72 border border-dashed border-brand-indigo/30 rounded-full animate-[spin_20s_linear_infinite_reverse] flex items-center justify-center">
+              <!-- Concentric Inner circle -->
+              <div class="w-40 h-40 lg:w-48 lg:h-48 border border-brand-indigo/60 rounded-full flex items-center justify-center">
+                <!-- Center Shield Logo / Pulse -->
+                <div class="relative group">
+                  <div class="absolute -inset-4 bg-brand-indigo/20 blur-xl rounded-full opacity-60 group-hover:opacity-100 transition-opacity duration-700"></div>
+                  <div class="relative w-16 h-16 bg-black border border-white/10 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-brand-indigo animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Radar Sweep Beam (Independent Rotation) -->
+          <div class="absolute w-72 h-72 lg:w-96 lg:h-96 rounded-full animate-[spin_6s_linear_infinite] pointer-events-none flex items-center justify-center">
+            <div class="w-[50%] h-[50%] border-r border-brand-indigo/60 relative">
+              <div class="absolute top-0 right-0 w-full h-full bg-gradient-to-tr from-brand-indigo/10 via-transparent to-transparent origin-bottom-left rotate-45"></div>
+            </div>
+          </div>
+          
+          <!-- Scanning Grid overlay -->
+          <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_50%,_#000_100%)] pointer-events-none"></div>
+          
+          <!-- Latency / Active Status Chip -->
+          <div class="absolute bottom-4 bg-white/5 border border-white/10 px-4 py-1.5 font-mono text-[10px] tracking-widest text-brand-indigo uppercase sharp">
+            <span class="inline-block w-1.5 h-1.5 bg-brand-indigo rounded-full pulse-indicator mr-2"></span>
+            SYS_MONITOR: ACTIVE
+          </div>
         </div>
       </div>
-
-      <!-- Thin scanning line divider -->
-      <div class="mt-24 w-full max-w-[1280px] relative scanner overflow-hidden border border-white/5 bg-white/5 h-px"></div>
     </section>
 
     <!-- Flow Diagram Section -->
@@ -178,7 +227,7 @@
       </div>
 
       <!-- Interactive Node Grid/Flex -->
-      <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch mb-8">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch mb-8">
         
         <!-- Node 1: Mobile App -->
         <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] indigo-border-glow flex flex-col justify-between" id="node-mobile" 
@@ -238,7 +287,7 @@
         </div>
         <div class="info-content hidden space-y-2">
           <h4 id="info-title" class="text-sm font-bold tracking-widest text-brand-indigo uppercase font-mono">Component Name</h4>
-          <p id="info-desc" class="text-sm text-gray-300 font-mono leading-relaxed">Component Description</p>
+          <p id="info-desc" class="text-sm text-gray-300 font-mono leading-relaxed blink-cursor">Component Description</p>
         </div>
       </div>
     </section>
