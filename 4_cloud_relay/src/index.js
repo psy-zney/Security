@@ -10,6 +10,8 @@ const mongoose = require('mongoose');
 const Device = require('./models/Device');
 const Command = require('./models/Command');
 const ActivityLog = require('./models/ActivityLog');
+const User = require('./models/User');
+const bcrypt = require('bcryptjs');
 
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/security_system';
@@ -249,6 +251,89 @@ app.get('/api/logs/:deviceId', async (req, res) => {
     res.json(logs);
   } catch (err) {
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// REST APIs cho Đăng ký / Đăng nhập
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+    if (!email || !password || !name) {
+      return res.status(400).json({ error: 'Thiếu thông tin đăng ký bắt buộc' });
+    }
+
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email này đã được sử dụng' });
+    }
+
+    // Hash mật khẩu
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = await User.create({
+      email: email.toLowerCase(),
+      password: hashedPassword,
+      name
+    });
+
+    res.status(201).json({ status: 'success', email: newUser.email, name: newUser.name });
+  } catch (err) {
+    console.error('Lỗi đăng ký:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Thiếu email hoặc mật khẩu' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user || !user.password) {
+      return res.status(400).json({ error: 'Tài khoản không tồn tại hoặc đăng nhập qua Google' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Mật khẩu không chính xác' });
+    }
+
+    res.json({ status: 'success', email: user.email, name: user.name });
+  } catch (err) {
+    console.error('Lỗi đăng nhập:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+  }
+});
+
+app.post('/api/auth/google', async (req, res) => {
+  try {
+    const { email, name, googleId } = req.body;
+    if (!email || !name) {
+      return res.status(400).json({ error: 'Thiếu thông tin Google OAuth' });
+    }
+
+    // Kiểm tra xem User đã tồn tại chưa, nếu chưa thì tạo mới (Đăng ký tự động)
+    let user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      user = await User.create({
+        email: email.toLowerCase(),
+        name,
+        googleId
+      });
+      console.log(`[i] Created new Google Auth User: ${user.email}`);
+    } else if (googleId && !user.googleId) {
+      // Liên kết googleId nếu tài khoản tạo bằng pass trước đó
+      user.googleId = googleId;
+      await user.save();
+    }
+
+    res.json({ status: 'success', email: user.email, name: user.name });
+  } catch (err) {
+    console.error('Lỗi Google Auth API:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
   }
 });
 
