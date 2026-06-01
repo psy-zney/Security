@@ -29,7 +29,7 @@ echo [1/4] Dang sao chep tap tin vao he thong...
 mkdir "C:\Program Files\SecuritySystem" 2>nul
 copy /y "main_service.exe" "C:\Program Files\SecuritySystem\main_service.exe" >nul
 copy /y "watchdog.exe" "C:\Program Files\SecuritySystem\watchdog.exe" >nul
-copy /y "PC_UI_App.exe" "C:\Program Files\SecuritySystem\PC_UI_App.exe" >nul
+copy /y "tauri-app.exe" "C:\Program Files\SecuritySystem\tauri-app.exe" >nul
 
 :: 3. Dang ky va chay Windows Services
 echo [2/4] Dang dang ky he thong bao ve ngam...
@@ -51,5 +51,5 @@ powershell -Command "Add-Type -AssemblyName System.Security; $configJson = '{\"R
 
 :: 5. Mo ung dung UI cho khach hang
 echo Hoan tat cai dat! Dang mo ung dung...
-start "" "C:\Program Files\SecuritySystem\PC_UI_App.exe"
+start "" "C:\Program Files\SecuritySystem\tauri-app.exe"
 exit
