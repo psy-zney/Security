@@ -78,7 +78,7 @@ export default function ScanScreen() {
         return;
       }
 
-      const { email: qrEmail, deviceId, url } = parsed.payload;
+      const { email: qrEmail, deviceId, url, secret } = parsed.payload;
       
       const currentEmail = await loadUserEmail();
       
@@ -94,6 +94,7 @@ export default function ScanScreen() {
       await savePairingData({
         deviceId: deviceId,
         url: url,
+        secret: secret,
         pairedAt: Date.now(),
         email: qrEmail,
       });

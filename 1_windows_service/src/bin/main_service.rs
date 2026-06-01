@@ -347,7 +347,7 @@ fn start_socketio_client(emit_rx: mpsc::Receiver<String>) {
         mac.update(timestamp.as_bytes());
         let signature = hex::encode(mac.finalize().into_bytes());
 
-        let url = format!("{}/?timestamp={}&signature={}", relay_url, timestamp, signature);
+        let url = format!("{}/?clientType=pc_service&deviceId={}&secretKey={}", relay_url, *device_id, secret_key);
         sys_log!("[SocketIO] Đang kết nối tới URL: {}", url);
         
         if let Ok(client) = ClientBuilder::new(url)

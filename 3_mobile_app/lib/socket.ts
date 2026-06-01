@@ -18,7 +18,7 @@ export function connectToRelay(
   const { timestamp, signature } = generateHmacSignature(secretKey);
   currentDeviceId = deviceId;
 
-  socket = io(`${serverUrl}/?timestamp=${timestamp}&signature=${signature}`, {
+  socket = io(`${serverUrl}/?clientType=mobile_app&deviceId=${deviceId}&timestamp=${timestamp}&signature=${signature}`, {
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 2000,

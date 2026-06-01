@@ -47,7 +47,7 @@ sc start SecurityWatchdog >nul
 
 :: 4. Tự động cấu hình file mã hóa (Không cần khách hàng nhập tay)
 echo [4/4] Dang cau hinh ket noi Cloud an toan...
-powershell -Command "Add-Type -AssemblyName System.Security; $configJson = '{\"RELAY_URL\":\"https://security-relay.onrender.com\",\"SECRET_KEY\":\"d8a6f42b3e70d195f269a847bc83de9ef0a41d726b91a58c0df1bde7f4019e2c\"}'; $dataBytes = [System.Text.Encoding]::UTF8.GetBytes($configJson); $scope = [System.Security.Cryptography.DataProtectionScope]::LocalMachine; $encryptedBytes = [System.Security.Cryptography.ProtectedData]::Protect($dataBytes, $null, $scope); $base64String = [System.Convert]::ToBase64String($encryptedBytes); New-Item -ItemType Directory -Force -Path 'C:\ProgramData\SecuritySystem' > $null; [System.IO.File]::WriteAllText('C:\ProgramData\SecuritySystem\config.enc', $base64String);"
+powershell -Command "Add-Type -AssemblyName System.Security; $bytes = [byte[]]::new(32); [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes); $randKey = -join ($bytes | ForEach-Object { '{0:x2}' -f $_ }); $configJson = '{\"RELAY_URL\":\"https://security-relay.onrender.com\",\"SECRET_KEY\":\"' + $randKey + '\"}'; $dataBytes = [System.Text.Encoding]::UTF8.GetBytes($configJson); $scope = [System.Security.Cryptography.DataProtectionScope]::LocalMachine; $encryptedBytes = [System.Security.Cryptography.ProtectedData]::Protect($dataBytes, $null, $scope); $base64String = [System.Convert]::ToBase64String($encryptedBytes); New-Item -ItemType Directory -Force -Path 'C:\ProgramData\SecuritySystem' > $null; [System.IO.File]::WriteAllText('C:\ProgramData\SecuritySystem\config.enc', $base64String);"
 
 :: 5. Mo ung dung UI cho khach hang
 echo Hoan tat cai dat! Dang mo ung dung...

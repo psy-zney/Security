@@ -32,6 +32,7 @@ function App() {
   
   const [machineId, setMachineId] = useState("fetching...");
   const [relayUrl, setRelayUrl] = useState("https://security-relay.onrender.com");
+  const [secretKey, setSecretKey] = useState("");
   
   useEffect(() => {
     invoke<string>("get_machine_id")
@@ -46,6 +47,7 @@ function App() {
         try {
           const cfg = JSON.parse(configStr);
           if (cfg.RELAY_URL) setRelayUrl(cfg.RELAY_URL);
+          if (cfg.SECRET_KEY) setSecretKey(cfg.SECRET_KEY);
         } catch(e) {
           console.error("Failed to parse config:", e);
         }
@@ -79,6 +81,7 @@ function App() {
         email: userEmail,
         deviceId: deviceConfig.deviceId,
         url: deviceConfig.url,
+        secret: secretKey,
         timestamp: Date.now()
       }
     });
