@@ -18,6 +18,7 @@ import {jwtDecode} from 'jwt-decode';
 WebBrowser.maybeCompleteAuthSession();
 
 const { width } = Dimensions.get('window');
+const BACKEND_URL = process.env.EXPO_PUBLIC_RELAY_URL || 'https://security-relay.onrender.com';
 
 const maskEmail = (email: string) => {
   if (!email) return '';
@@ -35,6 +36,8 @@ export default function WelcomeScreen() {
   const [curEmail, setCurEmail] = useState('');
   const [emailInput, setEmailInput] = useState('');
   const [pwdInput, setPwdInput] = useState('');
+  const [nameInput, setNameInput] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
 
   const glowAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -96,7 +99,22 @@ export default function WelcomeScreen() {
       });
       const user = await res.json();
       if (user.email) {
-        handleSuccessLogin(user.email);
+        // Sync Google user with MongoDB database
+        const dbRes = await fetch(`${BACKEND_URL}/api/auth/google`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: user.email,
+            name: user.name || user.email.split('@')[0],
+            googleId: user.id
+          })
+        });
+        const dbUser = await dbRes.json();
+        if (dbRes.ok) {
+          handleSuccessLogin(user.email);
+        } else {
+          Alert.alert("Lỗi CSDL", dbUser.error || "Không thể đồng bộ tài khoản Google vào CSDL.");
+        }
       } else {
         Alert.alert("Lỗi", "Không tìm thấy email liên kết với tài khoản này.");
       }
@@ -111,11 +129,63 @@ export default function WelcomeScreen() {
     setIsLoggedIn(true);
   };
 
-  const handlePasswordLogin = () => {
-    if (emailInput.includes('@') && emailInput.length > 5) {
-      handleSuccessLogin(emailInput);
-    } else {
+  const handlePasswordLogin = async () => {
+    if (!emailInput.includes('@') || emailInput.length <= 5) {
       Alert.alert("Lỗi", "Vui lòng nhập địa chỉ Email hợp lệ!");
+      return;
+    }
+    if (pwdInput.length < 6) {
+      Alert.alert("Lỗi", "Mật khẩu phải từ 6 ký tự trở lên!");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailInput, password: pwdInput })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        handleSuccessLogin(emailInput);
+      } else {
+        Alert.alert("Lỗi đăng nhập", data.error || "Email hoặc mật khẩu không chính xác.");
+      }
+    } catch (e: any) {
+      Alert.alert("Lỗi kết nối", "Không thể kết nối đến máy chủ.");
+    }
+  };
+
+  const handleRegister = async () => {
+    if (!emailInput.includes('@') || emailInput.length <= 5) {
+      Alert.alert("Lỗi", "Vui lòng nhập địa chỉ Email hợp lệ!");
+      return;
+    }
+    if (pwdInput.length < 6) {
+      Alert.alert("Lỗi", "Mật khẩu phải từ 6 ký tự trở lên!");
+      return;
+    }
+    if (!nameInput.trim()) {
+      Alert.alert("Lỗi", "Vui lòng nhập Họ tên!");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailInput, password: pwdInput, name: nameInput })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        Alert.alert("Đăng ký thành công!", "Tài khoản của bạn đã được tạo. Hãy đăng nhập ngay.", [
+          { text: "Đăng nhập", onPress: () => setIsRegistering(false) }
+        ]);
+      } else {
+        Alert.alert("Lỗi đăng ký", data.error || "Không thể tạo tài khoản.");
+      }
+    } catch (e: any) {
+      Alert.alert("Lỗi kết nối", "Không thể kết nối đến máy chủ.");
     }
   };
 
@@ -135,7 +205,7 @@ export default function WelcomeScreen() {
     );
   }
 
-  // --- LOGIN SCREEN ---
+  // --- LOGIN / SIGNUP SCREEN ---
   if (!isLoggedIn) {
      return (
       <View style={styles.container}>
@@ -143,20 +213,32 @@ export default function WelcomeScreen() {
         <Animated.View style={[styles.orb, styles.orbBottomRight, { opacity: glowAnim }]} />
         
         <View style={styles.loginCard}>
-          <Text style={styles.title}>Đăng nhập</Text>
+          <Text style={styles.title}>{isRegistering ? "Đăng ký" : "Đăng nhập"}</Text>
           <Text style={styles.description}>
-            Sử dụng mạng an toàn bằng Google Auth
+            {isRegistering ? "Tạo tài khoản mới lưu vào hệ thống bảo mật" : "Sử dụng mạng an toàn bằng Google Auth"}
           </Text>
 
-          <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: '#4285F4', marginBottom: 20 }]}
-            onPress={() => promptAsync()}
-          >
-            <Text style={styles.primaryButtonText}>G Đăng nhập với Google</Text>
-          </TouchableOpacity>
+          {!isRegistering && (
+            <TouchableOpacity
+              style={[styles.primaryButton, { backgroundColor: '#4285F4', marginBottom: 20 }]}
+              onPress={() => promptAsync()}
+            >
+              <Text style={styles.primaryButtonText}>G Đăng nhập với Google</Text>
+            </TouchableOpacity>
+          )}
 
-          <Text style={{color:'#888', textAlign:'center', marginBottom: 16}}>— Hoặc Đăng nhập tài khoản —</Text>
+          {!isRegistering && <Text style={{color:'#888', textAlign:'center', marginBottom: 16}}>— Hoặc Đăng nhập tài khoản —</Text>}
           
+          {isRegistering && (
+            <TextInput
+              style={styles.input}
+              placeholder="Họ và tên"
+              placeholderTextColor="#666"
+              value={nameInput}
+              onChangeText={setNameInput}
+            />
+          )}
+
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -173,8 +255,21 @@ export default function WelcomeScreen() {
             onChangeText={setPwdInput}
             secureTextEntry
           />
-          <TouchableOpacity style={styles.primaryButton} onPress={handlePasswordLogin}>
-            <Text style={styles.primaryButtonText}>Đăng nhập</Text>
+          
+          <TouchableOpacity 
+            style={styles.primaryButton} 
+            onPress={isRegistering ? handleRegister : handlePasswordLogin}
+          >
+            <Text style={styles.primaryButtonText}>{isRegistering ? "Đăng ký" : "Đăng nhập"}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={{ marginTop: 12, alignItems: 'center' }} 
+            onPress={() => setIsRegistering(!isRegistering)}
+          >
+            <Text style={{ color: '#6C63FF', fontSize: 14, fontWeight: '600' }}>
+              {isRegistering ? "Đã có tài khoản? Đăng nhập ngay" : "Chưa có tài khoản? Đăng ký ngay"}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
