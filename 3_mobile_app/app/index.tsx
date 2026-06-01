@@ -112,10 +112,10 @@ export default function WelcomeScreen() {
   };
 
   const handlePasswordLogin = () => {
-    if (emailInput === "lequangkhanh295@gmail.com" && pwdInput === "zney295") {
+    if (emailInput.includes('@') && emailInput.length > 5) {
       handleSuccessLogin(emailInput);
     } else {
-      Alert.alert("Lỗi", "Email hoặc mật khẩu không đúng!");
+      Alert.alert("Lỗi", "Vui lòng nhập địa chỉ Email hợp lệ!");
     }
   };
 
