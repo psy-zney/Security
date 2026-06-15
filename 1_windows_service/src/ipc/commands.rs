@@ -13,6 +13,9 @@ pub enum SecureCommand {
     GetLocation,
     GetIp,
     LockPc,
+    // Tính năng Tắt/Mở bằng OTP
+    SetKillOtp { otp: String },
+    ResumeService,
     // Lệnh Ping để kiểm tra trạng thái sống
     Ping,
 }

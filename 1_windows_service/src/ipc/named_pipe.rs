@@ -157,8 +157,20 @@ pub fn execute_command(cmd: SecureCommand) -> CommandResponse {
             }
             CommandResponse::Success { message: "Khóa PC thành công".into() }
         }
+        SecureCommand::SetKillOtp { otp } => {
+            if let Ok(mut lock) = crate::KILL_OTP.lock() {
+                *lock = Some(otp);
+            }
+            CommandResponse::Success { message: "Đã tạo mã OTP thành công. Vui lòng nhập trên điện thoại!".into() }
+        }
+        SecureCommand::ResumeService => {
+            crate::SERVICE_PAUSED.store(false, std::sync::atomic::Ordering::SeqCst);
+            CommandResponse::Success { message: "Đã khởi động lại tiến trình bảo vệ ngầm!".into() }
+        }
         SecureCommand::Ping => {
-            CommandResponse::Success { message: "Pong".into() }
+            let is_paused = crate::SERVICE_PAUSED.load(std::sync::atomic::Ordering::SeqCst);
+            let status = if is_paused { "Paused" } else { "Running" };
+            CommandResponse::Success { message: format!("Pong - Status: {}", status) }
         }
     }
 }

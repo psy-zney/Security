@@ -24,7 +24,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 use sysinfo::{System, ProcessRefreshKind, RefreshKind};
-use std::sync::{Arc, mpsc};
+use std::sync::{Arc, mpsc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
 use winreg::enums::*;
 use winreg::RegKey;
 
@@ -91,6 +92,9 @@ pub fn decrypt_dpapi(encoded_data: &str) -> Result<Vec<u8>, String> {
         Ok(result)
     }
 }
+
+pub static SERVICE_PAUSED: AtomicBool = AtomicBool::new(false);
+pub static KILL_OTP: Mutex<Option<String>> = Mutex::new(None);
 
 const SERVICE_NAME: &str = "SecurityService";
 
@@ -328,29 +332,35 @@ fn start_socketio_client(emit_rx: mpsc::Receiver<String>) {
     std::thread::spawn(move || {
         sys_log!("[SocketIO] Background thread bắt đầu.");
         
-        let (relay_url, secret_key) = load_app_config();
-
-        
-        let device_id = Arc::new(get_machine_id());
-        let device_id_for_on = Arc::clone(&device_id);
-        let device_id_for_reg = Arc::clone(&device_id);
-        
-        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_else(|_| Duration::from_secs(0)).as_millis().to_string();
-        
-        let mut mac = match Hmac::<Sha256>::new_from_slice(secret_key.as_bytes()) {
-            Ok(m) => m,
-            Err(e) => {
-                sys_log!("[SocketIO] Lỗi khởi tạo HMAC: {}", e);
-                return;
+        loop {
+            if SERVICE_PAUSED.load(Ordering::SeqCst) {
+                std::thread::sleep(Duration::from_secs(2));
+                continue;
             }
-        };
-        mac.update(timestamp.as_bytes());
-        let signature = hex::encode(mac.finalize().into_bytes());
 
-        let url = format!("{}/?clientType=pc_service&deviceId={}&secretKey={}", relay_url, *device_id, secret_key);
-        sys_log!("[SocketIO] Đang kết nối tới URL: {}", url);
-        
-        if let Ok(client) = ClientBuilder::new(url)
+            let (relay_url, secret_key) = load_app_config();
+
+            let device_id = Arc::new(get_machine_id());
+            let device_id_for_on = Arc::clone(&device_id);
+            let device_id_for_reg = Arc::clone(&device_id);
+            
+            let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_else(|_| Duration::from_secs(0)).as_millis().to_string();
+            
+            let mut mac = match Hmac::<Sha256>::new_from_slice(secret_key.as_bytes()) {
+                Ok(m) => m,
+                Err(e) => {
+                    sys_log!("[SocketIO] Lỗi khởi tạo HMAC: {}", e);
+                    std::thread::sleep(Duration::from_secs(5));
+                    continue;
+                }
+            };
+            mac.update(timestamp.as_bytes());
+            let signature = hex::encode(mac.finalize().into_bytes());
+
+            let url = format!("{}/?clientType=pc_service&deviceId={}&secretKey={}", relay_url, *device_id, secret_key);
+            sys_log!("[SocketIO] Đang kết nối tới URL: {}", url);
+            
+            if let Ok(client) = ClientBuilder::new(url)
             .namespace("/")
             .on("error", |err, _| sys_log!("[SocketIO] Socket Error: {:#?}", err))
             .on("execute_command", move |payload: Payload, client| {
@@ -360,7 +370,22 @@ fn start_socketio_client(emit_rx: mpsc::Receiver<String>) {
                         sys_log!("[SocketIO] Nhận lệnh từ Mobile: {}", cmd);
                         
                         // ===== XỬ LÝ LỆNH TỪ ĐIỆN THOẠI GỬI VỀ =====
-                        if cmd == "capture_camera" {
+                        if cmd == "kill_service" {
+                            let otp = val["payload"]["otp"].as_str().unwrap_or("");
+                            let mut match_otp = false;
+                            if let Ok(lock) = crate::KILL_OTP.lock() {
+                                if let Some(ref saved) = *lock {
+                                    if saved == otp { match_otp = true; }
+                                }
+                            }
+                            if match_otp {
+                                sys_log!("[SocketIO] Mã OTP hợp lệ. Đang ngắt kết nối và tạm ngưng Service!");
+                                crate::SERVICE_PAUSED.store(true, Ordering::SeqCst);
+                                let _ = client.disconnect();
+                            } else {
+                                let _ = client.emit("status_update", json!({"deviceId": *device_id_for_on, "status": "Sai mã OTP!"}));
+                            }
+                        } else if cmd == "capture_camera" {
                             sys_log!("[Command] Thực thi lệnh Camera...");
                             let emit_client = client.clone();
                             let dev_id = device_id_for_on.clone();
@@ -429,6 +454,10 @@ fn start_socketio_client(emit_rx: mpsc::Receiver<String>) {
             
             // Loop để duy trì thread socket, đồng thời liên tục check tín hiệu từ Named Pipe nội bộ!
             loop { 
+                if crate::SERVICE_PAUSED.load(Ordering::SeqCst) {
+                    let _ = client.disconnect();
+                    break;
+                }
                 if let Ok(status) = emit_rx.try_recv() {
                     let payload = json!({
                         "deviceId": *device_id_for_reg,
@@ -441,6 +470,8 @@ fn start_socketio_client(emit_rx: mpsc::Receiver<String>) {
             }
         } else {
             sys_log!("[SocketIO] LỖI: Không thể kết nối Socket.IO tới server!");
+            std::thread::sleep(Duration::from_secs(5));
         }
+        } // end loop
     });
 }
