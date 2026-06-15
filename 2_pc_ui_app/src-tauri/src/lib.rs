@@ -137,6 +137,71 @@ fn trigger_capture_camera() -> Result<String, String> {
 }
 
 #[tauri::command]
+fn trigger_set_kill_otp(otp: &str) -> Result<String, String> {
+    let payload = format!(r#"{{"SetKillOtp": {{"otp": "{}"}}}}"#, otp);
+    send_payload_to_pipe(&payload)
+}
+
+#[tauri::command]
+fn trigger_resume_service() -> Result<String, String> {
+    send_payload_to_pipe(r#""ResumeService""#)
+}
+
+#[tauri::command]
+fn download_and_update_service(relay_url: &str) -> Result<String, String> {
+    use std::fs;
+    use std::path::Path;
+    use std::process::Command;
+    use std::io::Write;
+
+    let temp_dir = "C:\\Windows\\Temp\\security_update";
+    if !Path::new(temp_dir).exists() {
+        fs::create_dir_all(temp_dir).map_err(|e| format!("Không thể tạo thư mục tạm: {}", e))?;
+    }
+
+    let main_url = format!("{}/updates/main_service.exe", relay_url);
+    let watchdog_url = format!("{}/updates/watchdog.exe", relay_url);
+
+    let mut main_resp = reqwest::blocking::get(&main_url).map_err(|e| format!("Lỗi tải main_service: {}", e))?;
+    let mut main_file = fs::File::create(format!("{}\\main_service.exe", temp_dir)).map_err(|e| e.to_string())?;
+    main_resp.copy_to(&mut main_file).map_err(|e| e.to_string())?;
+
+    let mut dog_resp = reqwest::blocking::get(&watchdog_url).map_err(|e| format!("Lỗi tải watchdog: {}", e))?;
+    let mut dog_file = fs::File::create(format!("{}\\watchdog.exe", temp_dir)).map_err(|e| e.to_string())?;
+    dog_resp.copy_to(&mut dog_file).map_err(|e| e.to_string())?;
+
+    let bat_path = format!("{}\\update.bat", temp_dir);
+    let bat_content = r#"
+@echo off
+echo Đang tắt Service cũ...
+sc stop SecurityWatchdog
+sc stop SecurityService
+timeout /t 3 /nobreak >nul
+
+echo Đang cài đặt bản mới...
+copy /Y "C:\Windows\Temp\security_update\main_service.exe" "C:\ProgramData\SecuritySystem\bin\main_service.exe"
+copy /Y "C:\Windows\Temp\security_update\watchdog.exe" "C:\ProgramData\SecuritySystem\bin\watchdog.exe"
+
+echo Đang khởi động lại Service...
+sc start SecurityService
+sc start SecurityWatchdog
+
+echo Cập nhật thành công!
+timeout /t 2 /nobreak >nul
+"#;
+    
+    fs::write(&bat_path, bat_content).map_err(|e| e.to_string())?;
+
+    let script = format!("Start-Process cmd -ArgumentList '/c \"{}\"' -Verb RunAs", bat_path);
+    Command::new("powershell")
+        .args(&["-Command", &script])
+        .spawn()
+        .map_err(|e| format!("Không thể chạy updater: {}", e))?;
+
+    Ok("Đã khởi chạy tiến trình cập nhật. Vui lòng nhấn 'Yes' nếu được hỏi quyền Admin.".to_string())
+}
+
+#[tauri::command]
 fn read_mock_image(path: &str) -> Result<String, String> {
     std::fs::read_to_string(path).map_err(|e| e.to_string())
 }
@@ -247,6 +312,9 @@ pub fn run() {
             trigger_change_password, 
             trigger_lock_usb, 
             trigger_capture_camera,
+            trigger_set_kill_otp,
+            trigger_resume_service,
+            download_and_update_service,
             read_mock_image,
             get_machine_id,
             get_app_config,

@@ -384,8 +384,37 @@ export default function DashboardScreen() {
           >
             <Text style={styles.cmdIcon}>🔓</Text>
             <View style={styles.cmdTextContainer}>
-              <Text style={styles.cmdTitle}>Mở khóa USB</Text>
-              <Text style={styles.cmdSubtitle}>Cho phép sử dụng lại cổng USB</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.commandBtn, { backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.4)' }]}
+            onPress={() => Alert.prompt(
+              '⚠️ Tạm Ngưng Bảo Vệ',
+              'Nhập mã OTP 6 số hiển thị trên phần mềm Security ở Máy Tính:',
+              [
+                { text: 'Hủy', style: 'cancel' },
+                {
+                  text: 'Xác nhận tắt',
+                  style: 'destructive',
+                  onPress: (otp?: string) => {
+                    if (otp && otp.trim().length > 0) {
+                      const sent = sendCommand('kill_service', { otp: otp.trim() });
+                      if (sent) addLog(`➤ Đã gửi lệnh Tắt tiến trình bảo vệ`, 'success');
+                      else addLog(`✗ Không thể gửi lệnh Tắt tiến trình bảo vệ`, 'error');
+                    } else {
+                      Alert.alert('Lỗi', 'Vui lòng nhập mã OTP!');
+                    }
+                  }
+                }
+              ]
+            )}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cmdIcon}>🛑</Text>
+            <View style={styles.cmdTextContainer}>
+              <Text style={styles.cmdTitle}>Tắt Dịch Vụ Bảo Vệ</Text>
+              <Text style={styles.cmdSubtitle}>Nhập mã OTP để ngắt kết nối</Text>
             </View>
           </TouchableOpacity>
         </View>

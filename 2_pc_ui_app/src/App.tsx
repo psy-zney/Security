@@ -34,6 +34,8 @@ function App() {
   const [relayUrl, setRelayUrl] = useState("https://security-relay.onrender.com");
   const [secretKey, setSecretKey] = useState("");
   
+  const [otpCode, setOtpCode] = useState<string | null>(null);
+  
   useEffect(() => {
     invoke<string>("get_machine_id")
       .then((id) => setMachineId(id))
@@ -90,6 +92,7 @@ function App() {
   const handleNativeGoogleLogin = async () => {
     try {
       const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      const clientSecret = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
       if (!clientId || clientId.includes('PASTE_YOUR')) {
         setLoginError("Hãy dán VITE_GOOGLE_CLIENT_ID thật vào file .env của 2_pc_ui_app.");
         return;
@@ -127,16 +130,21 @@ function App() {
           if (!code) throw new Error("Google không trả về uỷ quyền (code).");
 
           // 5. Gửi lên Google lấy cục Token xịn
+          const params: Record<string, string> = {
+            client_id: clientId,
+            code: code,
+            redirect_uri: redirectUri,
+            grant_type: "authorization_code",
+            code_verifier: verifier
+          };
+          if (clientSecret) {
+            params.client_secret = clientSecret;
+          }
+
           const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams({
-              client_id: clientId,
-              code: code,
-              redirect_uri: redirectUri,
-              grant_type: "authorization_code",
-              code_verifier: verifier
-            })
+            body: new URLSearchParams(params)
           });
 
           const tokenData = await tokenRes.json();
@@ -157,6 +165,49 @@ function App() {
 
     } catch (e: any) {
       setLoginError("Không thể bật Server bắt Login: " + e.message);
+    }
+  };
+
+  const handleSetKillOtp = async () => {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setOtpCode(code);
+    try {
+      const res = await invoke<string>('trigger_set_kill_otp', { otp: code });
+      alert(res);
+    } catch (e: any) {
+      alert("Lỗi: " + e);
+    }
+  };
+
+  const handleResumeService = async () => {
+    setOtpCode(null);
+    try {
+      const res = await invoke<string>('trigger_resume_service');
+      alert(res);
+    } catch (e: any) {
+      alert("Lỗi: " + e);
+    }
+  };
+
+  const handleCheckUpdate = async () => {
+    try {
+      const res = await fetch(`${relayUrl}/updates/version.json`);
+      if (res.ok) {
+        const data = await res.json();
+        const confirmUpdate = window.confirm(`Có bản cập nhật Service chạy ngầm mới!\n\nPhiên bản: ${data.version}\nNội dung: ${data.notes}\n\nBạn có muốn tự động tải xuống và cài đặt ngay không? (Sẽ yêu cầu quyền Admin một lần duy nhất)`);
+        if (confirmUpdate) {
+          try {
+            const status = await invoke<string>('download_and_update_service', { relayUrl });
+            alert(status);
+          } catch (e: any) {
+            alert("Lỗi khi cập nhật: " + e);
+          }
+        }
+      } else {
+        alert("Hiện chưa có bản cập nhật mới nào trên Server.");
+      }
+    } catch (e: any) {
+      alert("Không thể kết nối đến Server để kiểm tra cập nhật: " + e.message);
     }
   };
 
@@ -244,7 +295,7 @@ function App() {
                     type="text" 
                     value={relayUrl} 
                     onChange={(e) => setRelayUrl(e.target.value)}
-                    style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid #1a1a2e', backgroundColor: '#0a0a0f', color: '#fff', fontSize: '13px' }}
+                    style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#0f172a', fontSize: '13px' }}
                   />
                 </div>
                 <p style={{ fontSize: '12px', color: '#888', marginTop: '8px', lineHeight: 1.4 }}>
@@ -272,8 +323,28 @@ function App() {
             }}>
               🔑 Đổi Mật Khẩu
             </button>
+            <button className="btn danger" onClick={handleSetKillOtp} style={{ border: '1px solid #fecaca' }}>
+              ❌ Tắt Bảo Vệ (Tạo OTP)
+            </button>
+            <button className="btn primary" onClick={handleResumeService} style={{ backgroundColor: '#22c55e', boxShadow: '0 4px 14px rgba(34, 197, 94, 0.3)' }}>
+              ✅ Bật Lại Bảo Vệ
+            </button>
+            <button className="btn secondary" onClick={handleCheckUpdate} style={{ backgroundColor: '#3b82f6', color: 'white' }}>
+              ☁️ Cập nhật Service
+            </button>
           </div>
         </section>
+
+        {otpCode && (
+          <section className="otp-section" style={{ marginTop: '24px' }}>
+            <div className="card" style={{ textAlign: 'center', border: '2px dashed #ef4444', backgroundColor: '#fef2f2' }}>
+              <h3 style={{ color: '#ef4444', marginTop: 0, fontSize: '1.2rem' }}>Mã OTP Tạm Ngưng Dịch Vụ</h3>
+              <p style={{ color: '#0f172a' }}>Vui lòng nhập mã này vào ứng dụng Mobile để hoàn tất tắt tiến trình ngầm:</p>
+              <h1 style={{ letterSpacing: '0.25em', fontSize: '3rem', margin: '1rem 0', color: '#b91c1c' }}>{otpCode}</h1>
+              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Khi Service ngắt kết nối, sẽ tiết kiệm RAM cho máy tính. Bấm "Bật Lại Bảo Vệ" để khôi phục.</p>
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
