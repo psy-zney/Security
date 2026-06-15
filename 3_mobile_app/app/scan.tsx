@@ -19,8 +19,18 @@ export default function ScanScreen() {
   const [scanned, setScanned] = useState(false);
   const [scanning, setScanning] = useState(false);
   const scanLineAnim = useRef(new Animated.Value(0)).current;
+  const rainbowAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Hiệu ứng chạy màu 7 sắc cầu vồng
+    Animated.loop(
+      Animated.timing(rainbowAnim, {
+        toValue: 1,
+        duration: 4000,
+        useNativeDriver: false,
+      })
+    ).start();
+
     // Animate scanning line
     Animated.loop(
       Animated.sequence([
@@ -37,6 +47,11 @@ export default function ScanScreen() {
       ])
     ).start();
   }, []);
+
+  const borderColor = rainbowAnim.interpolate({
+    inputRange: [0, 0.14, 0.28, 0.42, 0.56, 0.7, 0.84, 1],
+    outputRange: ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#4B0082', '#8B00FF', '#FF0000']
+  });
 
   if (!permission) {
     return (
@@ -137,15 +152,19 @@ export default function ScanScreen() {
             <View style={styles.sideOverlay} />
             {/* Scanner frame */}
             <View style={styles.scanFrame}>
-              <View style={[styles.corner, styles.topLeft]} />
-              <View style={[styles.corner, styles.topRight]} />
-              <View style={[styles.corner, styles.bottomLeft]} />
-              <View style={[styles.corner, styles.bottomRight]} />
+              <Animated.View style={[styles.corner, styles.topLeft, { borderColor }]} />
+              <Animated.View style={[styles.corner, styles.topRight, { borderColor }]} />
+              <Animated.View style={[styles.corner, styles.bottomLeft, { borderColor }]} />
+              <Animated.View style={[styles.corner, styles.bottomRight, { borderColor }]} />
               {/* Scan line */}
               <Animated.View
                 style={[
                   styles.scanLine,
-                  { transform: [{ translateY: scanLineY }] },
+                  {
+                    transform: [{ translateY: scanLineY }],
+                    backgroundColor: borderColor,
+                    shadowColor: borderColor
+                  },
                 ]}
               />
             </View>
@@ -177,11 +196,11 @@ const FRAME_SIZE = width * 0.7;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
   },
   center: {
     flex: 1,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
@@ -193,10 +212,10 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 16,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
   },
   backBtn: { width: 80 },
-  backText: { color: '#6C63FF', fontSize: 16, fontWeight: '600' },
+  backText: { color: '#00D1FF', fontSize: 16, fontWeight: '600' },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
   cameraContainer: {
     height: width * 1.1,
@@ -208,7 +227,7 @@ const styles = StyleSheet.create({
   },
   topOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(10,10,15,0.75)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
   },
   middleRow: {
     flexDirection: 'row',
@@ -216,11 +235,11 @@ const styles = StyleSheet.create({
   },
   sideOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(10,10,15,0.75)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
   },
   bottomOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(10,10,15,0.75)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
   },
   scanFrame: {
     width: FRAME_SIZE,
@@ -232,8 +251,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 24,
     height: 24,
-    borderColor: '#6C63FF',
-    borderWidth: 3,
+    borderWidth: 4,
   },
   topLeft: { top: 0, left: 0, borderBottomWidth: 0, borderRightWidth: 0 },
   topRight: { top: 0, right: 0, borderBottomWidth: 0, borderLeftWidth: 0 },
@@ -243,12 +261,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    height: 2,
-    backgroundColor: '#6C63FF',
-    shadowColor: '#6C63FF',
+    height: 3,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
-    shadowRadius: 8,
+    shadowRadius: 10,
     elevation: 5,
   },
   instructions: {
@@ -263,13 +279,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   instructionsText: {
-    color: '#888',
+    color: '#AAA',
     fontSize: 14,
     lineHeight: 22,
     marginBottom: 6,
   },
   highlight: {
-    color: '#6C63FF',
+    color: '#00D1FF',
     fontWeight: '600',
   },
   title: {
@@ -280,7 +296,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subText: {
-    color: '#888',
+    color: '#AAA',
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 22,
@@ -291,7 +307,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 14,
-    backgroundColor: '#6C63FF',
+    backgroundColor: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: '#333',
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });

@@ -7,18 +7,81 @@ import {
   Animated,
   Dimensions,
   TextInput,
-  Alert
+  Alert,
+  Easing,
+  ActivityIndicator,
+  Pressable
 } from 'react-native';
 import { router } from 'expo-router';
 import { loadPairingData, loadUserEmail, saveUserEmail, clearUserEmail, clearPairingData } from '../lib/storage';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import {jwtDecode} from 'jwt-decode';
+
+import { LinearGradient } from 'expo-linear-gradient';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const { width } = Dimensions.get('window');
 const BACKEND_URL = process.env.EXPO_PUBLIC_RELAY_URL || 'https://security-relay.onrender.com';
+
+// Tạo component Animated cho TextInput
+const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
+
+// Component tạo viền 7 màu chạy đuổi nhau (Chasing Border) mỏng và tinh tế hơn
+const RainbowWrapper = ({ children, style, borderRadius = 24, borderWidth = 1.2 }: any) => {
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 4000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, []);
+
+  const rotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  return (
+    <View style={[{ borderRadius, overflow: 'hidden', padding: borderWidth }, style]}>
+      <Animated.View
+        style={{
+          position: 'absolute',
+          width: '200%',
+          height: '200%',
+          top: '-50%',
+          left: '-50%',
+          transform: [{ rotate }],
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <LinearGradient
+          colors={[
+            'transparent',
+            '#FF0000', '#FF7F00', '#FFFF00', '#00FF00',
+            'transparent',
+            'transparent',
+            '#0000FF', '#4B0082', '#8B00FF',
+            'transparent'
+          ]}
+          locations={[0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.55, 0.65, 0.75, 0.85, 0.9]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ width: '100%', height: '100%' }}
+        />
+      </Animated.View>
+      <View style={{ backgroundColor: '#000000', borderRadius: borderRadius - borderWidth, justifyContent: 'center' }}>
+        {children}
+      </View>
+    </View>
+  );
+};
 
 const maskEmail = (email: string) => {
   if (!email) return '';
@@ -38,8 +101,9 @@ export default function WelcomeScreen() {
   const [pwdInput, setPwdInput] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
 
-  const glowAnim = useRef(new Animated.Value(0)).current;
+  const rainbowAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
 
@@ -53,10 +117,11 @@ export default function WelcomeScreen() {
 
   useEffect(() => {
     Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
-        Animated.timing(glowAnim, { toValue: 0, duration: 2000, useNativeDriver: true }),
-      ])
+      Animated.timing(rainbowAnim, {
+        toValue: 1,
+        duration: 4000,
+        useNativeDriver: false,
+      })
     ).start();
 
     Animated.parallel([
@@ -93,6 +158,7 @@ export default function WelcomeScreen() {
   }, [response]);
 
   const fetchUserInfo = async (token: string) => {
+    setIsConnecting(true);
     try {
       const res = await fetch('https://www.googleapis.com/userinfo/v2/me', {
         headers: { Authorization: `Bearer ${token}` },
@@ -120,6 +186,8 @@ export default function WelcomeScreen() {
       }
     } catch(e: any) {
       Alert.alert("Google API Error", e?.message || "Không thể tải thông tin profile Google.");
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -139,6 +207,7 @@ export default function WelcomeScreen() {
       return;
     }
 
+    setIsConnecting(true);
     try {
       const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: 'POST',
@@ -153,6 +222,8 @@ export default function WelcomeScreen() {
       }
     } catch (e: any) {
       Alert.alert("Lỗi kết nối", "Không thể kết nối đến máy chủ.");
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -170,6 +241,7 @@ export default function WelcomeScreen() {
       return;
     }
 
+    setIsConnecting(true);
     try {
       const res = await fetch(`${BACKEND_URL}/api/auth/register`, {
         method: 'POST',
@@ -186,6 +258,8 @@ export default function WelcomeScreen() {
       }
     } catch (e: any) {
       Alert.alert("Lỗi kết nối", "Không thể kết nối đến máy chủ.");
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -197,9 +271,14 @@ export default function WelcomeScreen() {
     setHasPairing(false);
   };
 
+  const borderColor = rainbowAnim.interpolate({
+    inputRange: [0, 0.14, 0.28, 0.42, 0.56, 0.7, 0.84, 1],
+    outputRange: ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#4B0082', '#8B00FF', '#FF0000']
+  });
+
   if (checking) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <Text style={styles.loadingText}>Đang khởi động...</Text>
       </View>
     );
@@ -209,69 +288,85 @@ export default function WelcomeScreen() {
   if (!isLoggedIn) {
      return (
       <View style={styles.container}>
-        <Animated.View style={[styles.orb, styles.orbTopLeft, { opacity: glowAnim }]} />
-        <Animated.View style={[styles.orb, styles.orbBottomRight, { opacity: glowAnim }]} />
-        
-        <View style={styles.loginCard}>
-          <Text style={styles.title}>{isRegistering ? "Đăng ký" : "Đăng nhập"}</Text>
-          <Text style={styles.description}>
-            {isRegistering ? "Tạo tài khoản mới lưu vào hệ thống bảo mật" : "Sử dụng mạng an toàn bằng Google Auth"}
-          </Text>
-
-          {!isRegistering && (
-            <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: '#4285F4', marginBottom: 20 }]}
-              onPress={() => promptAsync()}
-            >
-              <Text style={styles.primaryButtonText}>G Đăng nhập với Google</Text>
-            </TouchableOpacity>
-          )}
-
-          {!isRegistering && <Text style={{color:'#888', textAlign:'center', marginBottom: 16}}>— Hoặc Đăng nhập tài khoản —</Text>}
-          
-          {isRegistering && (
-            <TextInput
-              style={styles.input}
-              placeholder="Họ và tên"
-              placeholderTextColor="#666"
-              value={nameInput}
-              onChangeText={setNameInput}
-            />
-          )}
-
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#666"
-            value={emailInput}
-            onChangeText={setEmailInput}
-            autoCapitalize="none"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Mật khẩu"
-            placeholderTextColor="#666"
-            value={pwdInput}
-            onChangeText={setPwdInput}
-            secureTextEntry
-          />
-          
-          <TouchableOpacity 
-            style={styles.primaryButton} 
-            onPress={isRegistering ? handleRegister : handlePasswordLogin}
-          >
-            <Text style={styles.primaryButtonText}>{isRegistering ? "Đăng ký" : "Đăng nhập"}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={{ marginTop: 12, alignItems: 'center' }} 
-            onPress={() => setIsRegistering(!isRegistering)}
-          >
-            <Text style={{ color: '#6C63FF', fontSize: 14, fontWeight: '600' }}>
-              {isRegistering ? "Đã có tài khoản? Đăng nhập ngay" : "Chưa có tài khoản? Đăng ký ngay"}
+        {isConnecting && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#00D1FF" />
+            <Text style={styles.loadingTextOverlay}>Đang kết nối server...</Text>
+          </View>
+        )}
+        <RainbowWrapper borderRadius={24} borderWidth={3} style={{ width: width * 0.85 }}>
+          <View style={styles.loginCardInner}>
+            <Text style={styles.title}>{isRegistering ? "Đăng ký" : "Đăng nhập"}</Text>
+            <Text style={styles.description}>
+              {isRegistering ? "Tạo tài khoản mới lưu vào hệ thống bảo mật" : "Sử dụng mạng an toàn bằng Google Auth"}
             </Text>
-          </TouchableOpacity>
-        </View>
+
+            {!isRegistering && (
+              <TouchableOpacity
+                style={[styles.primaryButton, { backgroundColor: '#4285F4', marginBottom: 20 }]}
+                onPress={() => promptAsync()}
+              >
+                <Text style={styles.primaryButtonText}>G Đăng nhập với Google</Text>
+              </TouchableOpacity>
+            )}
+
+            {!isRegistering && <Text style={{color:'#888', textAlign:'center', marginBottom: 16}}>— Hoặc Đăng nhập tài khoản —</Text>}
+
+            {isRegistering && (
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.inputInner}
+                  placeholder="Họ và tên"
+                  placeholderTextColor="#666"
+                  value={nameInput}
+                  onChangeText={setNameInput}
+                />
+              </View>
+            )}
+
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.inputInner}
+                placeholder="Email"
+                placeholderTextColor="#666"
+                value={emailInput}
+                onChangeText={setEmailInput}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.inputInner}
+                placeholder="Mật khẩu"
+                placeholderTextColor="#666"
+                value={pwdInput}
+                onChangeText={setPwdInput}
+                secureTextEntry
+              />
+            </View>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.primaryButton,
+                { backgroundColor: pressed ? '#555555' : '#00D1FF', borderColor: pressed ? '#555555' : '#00D1FF' }
+              ]}
+              onPress={isRegistering ? handleRegister : handlePasswordLogin}
+            >
+              <Text style={[styles.primaryButtonText, { color: '#000000' }]}>{isRegistering ? "Đăng ký" : "Đăng nhập"}</Text>
+            </Pressable>
+
+            <TouchableOpacity
+              style={{ marginTop: 12, alignItems: 'center' }}
+              onPress={() => setIsRegistering(!isRegistering)}
+            >
+              <Text style={{ color: '#00D1FF', fontSize: 14, fontWeight: '600' }}>
+                {isRegistering ? "Đã có tài khoản? Đăng nhập ngay" : "Chưa có tài khoản? Đăng ký ngay"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </RainbowWrapper>
       </View>
      )
   }
@@ -279,14 +374,10 @@ export default function WelcomeScreen() {
   // --- WELCOME SCREEN ---
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.orb, styles.orbTopLeft, { opacity: glowAnim }]} />
-      <Animated.View style={[styles.orb, styles.orbBottomRight, { opacity: glowAnim }]} />
-
       <Animated.View style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-        <View style={styles.shieldContainer}>
-          <Animated.View style={[styles.shieldGlow, { opacity: glowAnim }]} />
+        <Animated.View style={[styles.shieldContainer, { borderColor }]}>
           <Text style={styles.shieldIcon}>🛡️</Text>
-        </View>
+        </Animated.View>
 
         <Text style={styles.title}>Security Core</Text>
         <Text style={styles.subtitle}>{"Email: " + maskEmail(curEmail)}</Text>
@@ -341,50 +432,47 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
   },
-  loginCard: {
-    width: width * 0.85,
-    backgroundColor: '#151520',
+  loginCardInner: {
+    backgroundColor: '#050505',
     padding: 24,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#2a2a3a',
-    zIndex: 10,
+    borderRadius: 22,
   },
-  input: {
-    backgroundColor: '#0a0a0f',
-    color: '#fff',
+  inputWrapper: {
+    marginBottom: 18,
+    width: '100%',
+  },
+  inputInner: {
+    backgroundColor: '#111111',
+    color: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderRadius: 16,
+    fontSize: 16,
+    fontWeight: '500',
+    letterSpacing: 0.5,
     borderWidth: 1,
-    borderColor: '#2a2a3a',
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 16,
+    borderColor: '#333333',
   },
   loadingText: {
-    color: '#888',
+    color: '#00D1FF',
     fontSize: 16,
   },
-  orb: {
-    position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
   },
-  orbTopLeft: {
-    top: -80,
-    left: -80,
-    backgroundColor: '#6C63FF',
-    opacity: 0.15,
-  },
-  orbBottomRight: {
-    bottom: -80,
-    right: -80,
-    backgroundColor: '#FF4757',
-    opacity: 0.15,
+  loadingTextOverlay: {
+    color: '#00D1FF',
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '600',
   },
   content: {
     width: width * 0.88,
@@ -392,20 +480,14 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   shieldContainer: {
-    width: 100,
-    height: 100,
+    width: 120,
+    height: 120,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-    position: 'relative',
-  },
-  shieldGlow: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#6C63FF',
-    opacity: 0.3,
+    borderRadius: 60,
+    borderWidth: 3,
+    backgroundColor: '#080808',
   },
   shieldIcon: { fontSize: 56, zIndex: 1 },
   title: {
@@ -418,14 +500,14 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: '#6C63FF',
+    color: '#00D1FF',
     letterSpacing: 1,
     marginBottom: 16,
     fontWeight: '600',
   },
   description: {
     fontSize: 15,
-    color: '#888',
+    color: '#AAA',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 28,
@@ -443,25 +525,22 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#2a2a3a',
-    backgroundColor: '#111120',
+    borderColor: '#333',
+    backgroundColor: '#111',
   },
-  badgeText: { color: '#aaa', fontSize: 12, fontWeight: '600' },
+  badgeText: { color: '#00D1FF', fontSize: 12, fontWeight: '600' },
   primaryButton: {
     width: '100%',
     paddingVertical: 18,
     borderRadius: 16,
-    backgroundColor: '#6C63FF',
+    backgroundColor: '#1A1A1A',
     alignItems: 'center',
-    shadowColor: '#6C63FF',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 10,
+    borderWidth: 1,
+    borderColor: '#333',
     marginBottom: 12,
   },
   primaryButtonText: {
-    color: '#fff',
+    color: '#FFF',
     fontSize: 17,
     fontWeight: '700',
   },
@@ -469,7 +548,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   secondaryButtonText: {
-    color: '#555',
+    color: '#888',
     fontSize: 14,
     textDecorationLine: 'underline',
   },

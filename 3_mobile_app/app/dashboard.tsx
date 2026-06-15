@@ -10,10 +10,13 @@ import {
   Dimensions,
   Vibration,
   Image,
+  Easing,
 } from 'react-native';
 import { router } from 'expo-router';
 import { connectToRelay, sendCommand, disconnectRelay, isConnected } from '../lib/socket';
 import { loadPairingData, clearPairingData } from '../lib/storage';
+
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
@@ -39,15 +42,69 @@ interface LocationInfo {
   status?: string;
 }
 
+// Component tạo viền 7 màu chạy đuổi nhau (Chasing Border) mỏng và tinh tế
+const RainbowWrapper = ({ children, style, borderRadius = 20, borderWidth = 1.2 }: any) => {
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 4000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, []);
+
+  const rotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  return (
+    <View style={[{ borderRadius, overflow: 'hidden', padding: borderWidth }, style]}>
+      <Animated.View
+        style={{
+          position: 'absolute',
+          width: '200%',
+          height: '200%',
+          top: '-50%',
+          left: '-50%',
+          transform: [{ rotate }],
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <LinearGradient
+          colors={['transparent', 'rgba(255,255,255,0.05)', '#FF0000', '#00FF00', '#0000FF', 'rgba(255,255,255,0.05)', 'transparent']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ width: '100%', height: '100%' }}
+        />
+      </Animated.View>
+      <View style={{ backgroundColor: '#000000', borderRadius: borderRadius - borderWidth, flex: 1 }}>
+        {children}
+      </View>
+    </View>
+  );
+};
+
 export default function DashboardScreen() {
   const [connected, setConnected] = useState(false);
   const [pairing, setPairing] = useState<{ deviceId: string; url: string } | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [location, setLocation] = useState<LocationInfo | null>(null);
   const [lastAlarm, setLastAlarm] = useState<string | null>(null);
+  const rainbowAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const alarmAnim = useRef(new Animated.Value(0)).current;
   const scrollRef = useRef<ScrollView>(null);
+
+  const alarmBg = alarmAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['rgba(255, 71, 87, 0.1)', 'rgba(255, 71, 87, 0.4)']
+  });
 
   const addLog = useCallback((message: string, type: LogEntry['type'] = 'info', imageBase64?: string) => {
     const now = new Date();
@@ -66,6 +123,15 @@ export default function DashboardScreen() {
   }, [alarmAnim]);
 
   useEffect(() => {
+    // Hiệu ứng chạy màu 7 sắc cầu vồng
+    Animated.loop(
+      Animated.timing(rainbowAnim, {
+        toValue: 1,
+        duration: 4000,
+        useNativeDriver: false,
+      })
+    ).start();
+
     // Pulse animation for connection dot
     Animated.loop(
       Animated.sequence([
@@ -164,34 +230,37 @@ export default function DashboardScreen() {
     }
   };
 
-  const alarmBg = alarmAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['rgba(255,71,87,0)', 'rgba(255,71,87,0.12)'],
+  const borderColor = rainbowAnim.interpolate({
+    inputRange: [0, 0.14, 0.28, 0.42, 0.56, 0.7, 0.84, 1],
+    outputRange: ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#4B0082', '#8B00FF', '#FF0000']
   });
+
 
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>🛡️ Command Center</Text>
-          <Text style={styles.deviceId} numberOfLines={1}>
-            ID: {pairing?.deviceId ?? '---'}
-          </Text>
+      <RainbowWrapper borderRadius={0} borderWidth={2} style={{ width: '100%' }}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerTitle}>🛡️ Command Center</Text>
+            <Text style={styles.deviceId} numberOfLines={1}>
+              ID: {pairing?.deviceId ?? '---'}
+            </Text>
+          </View>
+          <View style={styles.connectionBadge}>
+            <Animated.View
+              style={[
+                styles.connectionDot,
+                { backgroundColor: connected ? '#00FF00' : '#FF4757' },
+                connected ? { transform: [{ scale: pulseAnim }] } : {},
+              ]}
+            />
+            <Text style={[styles.connectionText, { color: connected ? '#00FF00' : '#FF4757' }]}>
+              {connected ? 'Online' : 'Offline'}
+            </Text>
+          </View>
         </View>
-        <View style={styles.connectionBadge}>
-          <Animated.View
-            style={[
-              styles.connectionDot,
-              { backgroundColor: connected ? '#2ed573' : '#FF4757' },
-              connected ? { transform: [{ scale: pulseAnim }] } : {},
-            ]}
-          />
-          <Text style={[styles.connectionText, { color: connected ? '#2ed573' : '#FF4757' }]}>
-            {connected ? 'Online' : 'Offline'}
-          </Text>
-        </View>
-      </View>
+      </RainbowWrapper>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* ALARM BANNER */}
@@ -210,17 +279,19 @@ export default function DashboardScreen() {
 
         {/* Location Card */}
         {location && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>📍 Vị trí Laptop</Text>
-            <View style={styles.locationGrid}>
-              {(location.ip || location.query) && <LocationRow label="Public IP" value={location.ip || location.query || ''} />}
-              {location.ssid && <LocationRow label="Wi-Fi (SSID)" value={location.ssid} highlight />}
-              {location.bssid && <LocationRow label="BSSID" value={location.bssid} />}
-              {location.city && <LocationRow label="Thành phố" value={`${location.city}, ${location.country}`} />}
-              {location.isp && <LocationRow label="Nhà mạng" value={location.isp} />}
-              {location.lat && <LocationRow label="Tọa độ" value={`${location.lat}, ${location.lon}`} />}
+          <RainbowWrapper borderRadius={20} borderWidth={2} style={{ margin: 16, marginBottom: 0 }}>
+            <View style={styles.cardInner}>
+              <Text style={styles.cardTitle}>📍 Vị trí Laptop</Text>
+              <View style={styles.locationGrid}>
+                {(location.ip || location.query) && <LocationRow label="Public IP" value={location.ip || location.query || ''} />}
+                {location.ssid && <LocationRow label="Wi-Fi (SSID)" value={location.ssid} highlight />}
+                {location.bssid && <LocationRow label="BSSID" value={location.bssid} />}
+                {location.city && <LocationRow label="Thành phố" value={`${location.city}, ${location.country}`} />}
+                {location.isp && <LocationRow label="Nhà mạng" value={location.isp} />}
+                {location.lat && <LocationRow label="Tọa độ" value={`${location.lat}, ${location.lon}`} />}
+              </View>
             </View>
-          </View>
+          </RainbowWrapper>
         )}
 
         {/* Control Buttons */}
@@ -320,7 +391,7 @@ export default function DashboardScreen() {
         </View>
 
         {/* Activity Log */}
-        <View style={styles.card}>
+        <View style={[styles.card, { borderColor: '#111' }]}>
           <Text style={styles.cardTitle}>📋 Nhật ký hoạt động</Text>
           {logs.length === 0 && (
             <Text style={styles.emptyLog}>Chưa có hoạt động nào...</Text>
@@ -346,7 +417,7 @@ export default function DashboardScreen() {
         </View>
 
         {/* Unpair */}
-        <View style={styles.card}>
+        <View style={[styles.card, { borderColor: 'transparent' }]}>
           <TouchableOpacity style={styles.unpairBtn} onPress={handleUnpair}>
             <Text style={styles.unpairText}>🔗 Huỷ ghép nối thiết bị</Text>
           </TouchableOpacity>
@@ -359,6 +430,7 @@ export default function DashboardScreen() {
 }
 
 function LocationRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+
   return (
     <View style={styles.locationRow}>
       <Text style={styles.locationLabel}>{label}</Text>
@@ -370,7 +442,7 @@ function LocationRow({ label, value, highlight }: { label: string; value: string
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
   },
   header: {
     flexDirection: 'row',
@@ -379,8 +451,12 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1a1a2e',
+    backgroundColor: '#000000',
+  },
+  cardInner: {
+    backgroundColor: '#080808',
+    borderRadius: 18,
+    padding: 20,
   },
   headerTitle: {
     color: '#fff',
@@ -388,7 +464,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   deviceId: {
-    color: '#555',
+    color: '#888',
     fontSize: 11,
     marginTop: 2,
     maxWidth: width * 0.55,
@@ -400,9 +476,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    backgroundColor: '#111120',
+    backgroundColor: '#111',
     borderWidth: 1,
-    borderColor: '#1a1a2e',
+    borderColor: '#333',
   },
   connectionDot: {
     width: 8,
@@ -437,11 +513,10 @@ const styles = StyleSheet.create({
   card: {
     margin: 16,
     marginBottom: 0,
-    backgroundColor: '#111120',
+    backgroundColor: '#080808',
     borderRadius: 20,
     padding: 20,
-    borderWidth: 1,
-    borderColor: '#1a1a2e',
+    borderWidth: 2,
   },
   cardTitle: {
     color: '#fff',
@@ -456,11 +531,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a2e',
+    borderBottomColor: '#1a1a1a',
   },
   locationLabel: { color: '#666', fontSize: 13 },
   locationValue: { color: '#ccc', fontSize: 13, fontWeight: '600', maxWidth: '60%', textAlign: 'right' },
-  locationHighlight: { color: '#6C63FF', fontWeight: '700' },
+  locationHighlight: { color: '#00D1FF', fontWeight: '700' },
   commandBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -470,55 +545,55 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   lockBtn: {
-    backgroundColor: 'rgba(255,71,87,0.12)',
+    backgroundColor: 'rgba(255,71,87,0.1)',
     borderWidth: 1,
     borderColor: 'rgba(255,71,87,0.3)',
   },
   cameraBtn: {
-    backgroundColor: 'rgba(108,99,255,0.12)',
+    backgroundColor: 'rgba(0,209,255,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(108,99,255,0.3)',
+    borderColor: 'rgba(0,209,255,0.3)',
   },
   locateBtn: {
-    backgroundColor: 'rgba(46,213,115,0.12)',
+    backgroundColor: 'rgba(0,255,0,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(46,213,115,0.3)',
+    borderColor: 'rgba(0,255,0,0.3)',
   },
   passwordBtn: {
-    backgroundColor: 'rgba(255,165,2,0.12)',
+    backgroundColor: 'rgba(255,165,2,0.1)',
     borderWidth: 1,
     borderColor: 'rgba(255,165,2,0.4)',
   },
   usbBtn: {
-    backgroundColor: 'rgba(231,76,60,0.12)',
+    backgroundColor: 'rgba(231,76,60,0.1)',
     borderWidth: 1,
     borderColor: 'rgba(231,76,60,0.4)',
   },
   usbUnlockBtn: {
-    backgroundColor: 'rgba(52,152,219,0.12)',
+    backgroundColor: 'rgba(52,152,219,0.1)',
     borderWidth: 1,
     borderColor: 'rgba(52,152,219,0.4)',
   },
   cmdIcon: { fontSize: 28 },
   cmdTextContainer: { flex: 1 },
   cmdTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  cmdSubtitle: { color: '#666', fontSize: 12, marginTop: 2 },
+  cmdSubtitle: { color: '#999', fontSize: 12, marginTop: 2 },
   logRow: {
     flexDirection: 'row',
     gap: 10,
     paddingVertical: 7,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a2e',
+    borderBottomColor: '#1a1a1a',
   },
-  logTime: { color: '#444', fontSize: 11, fontFamily: 'monospace', minWidth: 56 },
+  logTime: { color: '#555', fontSize: 11, fontFamily: 'monospace', minWidth: 56 },
   logMsg: { fontSize: 12, flex: 1, lineHeight: 17 },
   emptyLog: { color: '#444', fontSize: 13, textAlign: 'center', paddingVertical: 12 },
   unpairBtn: {
     paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#2a1a1a',
-    backgroundColor: 'rgba(255,71,87,0.06)',
+    borderColor: '#333',
+    backgroundColor: '#0a0a0a',
     alignItems: 'center',
   },
   unpairText: { color: '#FF4757', fontSize: 15, fontWeight: '600' },
