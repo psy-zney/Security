@@ -177,8 +177,12 @@ echo Đang tắt Service cũ...
 sc stop SecurityWatchdog
 sc stop SecurityService
 timeout /t 3 /nobreak >nul
+taskkill /F /IM watchdog.exe >nul 2>&1
+taskkill /F /IM main_service.exe >nul 2>&1
 
 echo Đang cài đặt bản mới...
+del /F /Q "C:\ProgramData\SecuritySystem\bin\main_service.exe" >nul 2>&1
+del /F /Q "C:\ProgramData\SecuritySystem\bin\watchdog.exe" >nul 2>&1
 copy /Y "C:\Windows\Temp\security_update\main_service.exe" "C:\ProgramData\SecuritySystem\bin\main_service.exe"
 copy /Y "C:\Windows\Temp\security_update\watchdog.exe" "C:\ProgramData\SecuritySystem\bin\watchdog.exe"
 
