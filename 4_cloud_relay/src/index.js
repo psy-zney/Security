@@ -368,7 +368,7 @@ app.get('/', async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`=========================================`);
   console.log(`🚀 RELAY SERVER IS RUNNING ON PORT ${PORT}`);
   console.log(`🔐 SECURITY TIER: MONGODB MULTI-TENANT`);
