@@ -1,76 +1,31 @@
-# 📱 Mobile App — Security Command Center (iOS)
+# 📱 Security System: Mobile App
 
-Ứng dụng điều khiển trung tâm dành riêng cho **iPhone (iOS)**. Được xây dựng bằng React Native (Expo SDK 52).
+A React Native mobile application built with the Expo framework, serving as the remote control center for the security system.
 
-## 🛠️ Công nghệ
-- **Nền tảng:** iOS (iPhone)
-- **Framework:** React Native + Expo SDK 52
-- **Ngôn ngữ:** TypeScript
-- **Điều hướng:** Expo Router v4 (file-based routing)
-- **Thư viện:**
-  - `expo-camera`: Quét mã QR ghép nối.
-  - `socket.io-client`: Kết nối WebSocket realtime với Cloud Relay.
-  - `crypto-js`: Giải mã AES-256 từ payload QR + tạo chữ ký HMAC-SHA256.
-  - `@react-native-async-storage`: Lưu thông tin Pairing bền vững trên máy.
+## Features
+- **Remote PC Lock**: Instantly lock the paired Windows PC screen from anywhere in the world.
+- **USB Port Control**: Remotely enable or disable USB data ports on the PC to prevent unauthorized data extraction.
+- **Stealth Camera Surveillance**: Trigger a silent camera capture. The PC will snap a photo and transmit the base64 image data back to your phone.
+- **Service Suspension (OTP)**: Input an OTP provided by the PC UI to securely pause the background service on the PC. This disconnects the PC from the Cloud Relay and saves CPU/RAM.
+- **Activity Logging**: View a persistent history of all remote commands executed.
+- **QR Code Scanner**: Built-in camera scanner to effortlessly pair with the PC UI.
 
-## 🔐 Luồng hoạt động
+## Development Setup
 
-```
-[Khởi động] → Kiểm tra dữ liệu Pairing đã lưu
-    ├── Chưa Pairing → Màn hình Welcome → Nhấn Quét QR
-    │       → Giải mã AES payload → Lưu vào Storage
-    │       → Kết nối Socket.io với HMAC Auth
-    │       → Dashboard
-    └── Đã Pairing → Dashboard trực tiếp (không cần quét lại)
-```
+### Prerequisites
+- Node.js (v18+)
+- Expo CLI
+- Expo Go App (on iOS/Android device)
 
-## 📂 Cấu trúc
-
-```
-3_mobile_app/
-├── app/
-│   ├── _layout.tsx     # Root navigation
-│   ├── index.tsx       # Màn hình Welcome / Splash
-│   ├── scan.tsx        # Quét mã QR ghép nối
-│   └── dashboard.tsx   # Trung tâm điều khiển
-├── lib/
-│   ├── crypto.ts       # Giải mã AES & chữ ký HMAC
-│   ├── socket.ts       # Kết nối Socket.io Relay
-│   └── storage.ts      # Lưu thông tin Pairing
-├── app.json            # Cấu hình Expo (iOS only)
-└── package.json
-```
-
-## 🚀 Chạy thử nhanh trên iPhone (Expo Go)
-
-> Đây là cách nhanh nhất để test. Không cần Mac, không cần Xcode.
-
-**Bước 1:** Tải **[Expo Go](https://apps.apple.com/app/expo-go/id982107779)** từ App Store trên iPhone.
-
-**Bước 2:** Chạy lệnh trên máy tính:
+### Running Locally
 ```bash
-cd 3_mobile_app
 npm install
 npx expo start
 ```
+Scan the QR code printed in the terminal using the Expo Go app on your phone to run the app in development mode.
 
-**Bước 3:** Mở Camera iPhone quét mã QR xuất hiện trong terminal → App tự động tải lên Expo Go.
-
-## 🏗️ Build bản cài đặt chính thức (.ipa)
-
-> Yêu cầu: Tài khoản Expo (miễn phí) + Tài khoản Apple Developer ($99/năm).
-
+### Building
+To build a standalone APK or AAB for Android:
 ```bash
-npm install -g eas-cli
-eas login
-eas build --platform ios
-```
-
-## ⚙️ Lưu ý Bảo mật
-
-Giá trị `AES_PASSPHRASE` trong `app/scan.tsx` **phải khớp** với `VITE_AES_PASSPHRASE` trong tệp `.env` của `2_pc_ui_app`:
-
-```typescript
-// app/scan.tsx
-const AES_PASSPHRASE = 'MOBILE_APP_DECRYPT_KEY'; // ← Đổi thành giá trị thật của bạn
+eas build -p android --profile preview
 ```

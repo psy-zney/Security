@@ -1,24 +1,28 @@
-# 🎨 PC UI App (Giao diện Quản trị Desktop)
+# 🖥️ Security System: PC UI Dashboard
 
-Ứng dụng này là bộ não điều hành tại chỗ, giúp người dùng đăng nhập và thiết lập uỷ quyền cho thiết bị di động.
+This is the local configuration and management dashboard for the Windows machine, built using the Tauri framework (Rust backend + React/TypeScript frontend).
 
-## 🛠️ Công nghệ sử dụng
-- **Khung xương:** Tauri (Rust-based WebView).
-- **Giao diện:** ReactJS + TypeScript.
-- **Mã hoá:** `crypto-js` (AES-256).
-- **Mã vạch:** `react-qr-code`.
+## Features
+- **Device Pairing**: Generates a secure QR code containing device identification and encryption keys for seamless pairing with the mobile app.
+- **Local Control**: Provides a clean UI with buttons to instantly lock the PC, disable USB ports, or capture stealth photos via IPC (Named Pipes) communication with the background service.
+- **Service Management (OTP)**: Generates a random 6-digit OTP that users can input on their Mobile App to securely pause/resume the background service.
+- **OTA Updates Client**: Fetches the `version.json` from the Cloud Relay. If a new version exists, it downloads the compiled service binaries and spawns an elevated PowerShell script to automatically install them.
 
-## 🚀 Tính năng Chi tiết
+## Development Setup
 
-### 1. Đăng nhập Admin
-- Chặn mọi truy cập trái phép bằng màn hình Login Admin.
-- Sử dụng cơ chế Glassmorphism (Kính mờ) tạo cảm giác an toàn và hiện đại.
+### Prerequisites
+- Node.js (v18+)
+- Rust & Cargo
+- Visual Studio C++ Build Tools
 
-### 2. Ghép nối An toàn (Secure Pairing)
-- Tạo ra một mã QR Code chứa thông tin cấu hình phức tạp.
-- **Bảo mật:** Toàn bộ dữ liệu trong QR đã được mã hoá bằng khóa bí mật (`VITE_AES_PASSPHRASE`) qua thuật toán AES-256. 
-- Ngay cả khi kẻ gian chụp trộm được mã QR, chúng cũng không thể giải mã để lấy được thông tin kết nối nếu không có ứng dụng di động chính chủ sở hữu cùng chìa khóa.
+### Running Locally
+```bash
+npm install
+npm run tauri dev
+```
 
-### 3. Build & Run
-1. `npm install`
-2. `npm run tauri dev`
+### Building for Release
+```bash
+npm run tauri build
+```
+This will compile the frontend and Rust binary into a standalone executable.

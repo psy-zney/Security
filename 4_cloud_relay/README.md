@@ -1,28 +1,30 @@
-# ☁️ Cloud Relay (Máy chủ Trung gian)
+# ☁️ Security System: Cloud Relay
 
-Đây là "Trạm Bưu Điện" - Nơi điều phối mọi thông điệp bảo mật giữa thiết bị Di động và Máy tính.
+A lightweight Node.js Express server with Socket.IO that routes encrypted commands between the Mobile App and the Windows Background Service.
 
-## 🛠️ Công nghệ sử dụng
-- **Runtime:** Node.js.
-- **Thư viện:** Express, Socket.io, Crypto.
-- **An ninh:** Local RAM Queue (Hàng đợi lưu trên RAM).
+## Features
+- **Bidirectional WebSocket Routing**: Utilizes `socket.io` for high-speed, real-time communication between the paired Mobile and PC clients.
+- **End-to-End Security Verification**: Validates HMAC-SHA256 signatures for every incoming message using a shared `SECRET_KEY` to prevent spoofing or unauthorized access.
+- **OTA Updates Hosting**: Serves the `version.json` and compiled `.exe` files from the `/public` directory, enabling the PC UI to fetch and install over-the-air updates for the Windows Services.
+- **MongoDB Integration**: Validates User authentication and logs all executed commands and device statuses into a persistent NoSQL database.
 
-## 🚀 Tính năng Chi tiết
+## Deployment Setup
 
-### 1. HMAC Auth Middleware
-Toàn bộ mọi kết nối vào Server đều phải đi qua lớp "Cửa khẩu" kiểm soát:
-- Kiểm tra tính hợp lệ của chữ ký (Signature).
-- Kiểm tra hạn sử dụng của lệnh (Timestamp Validation - Chống trộm lại gói tin).
+### Environment Variables
+Create a `.env` file in the root directory:
+```env
+PORT=3000
+MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/security
+```
 
-### 2. Offline Queue (Hàng đợi Ngoại tuyến)
-- Khi lệnh điều khiển bay tới mà Laptop đang mất mạng, Server sẽ không vứt bỏ lệnh đó.
-- Server tự tạo một kho lưu trữ tạm thời `messageQueue`.
-- Ngay khi Laptop thò mặt lên (Event: `register`), Server sẽ **Xả toàn bộ lệnh tồn đọng** xuống Laptop.
+### Running Locally
+```bash
+npm install
+npm run dev
+```
 
-### 3. RAM Monitoring
-- Truy cập `GET /` để xem báo cáo chi tiết về tình trạng RAM hệ thống đang sử dụng (RSS, Heap).
-- Giới hạn 50 tin nhắn chờ/thiết bị để tránh kẻ xấu tấn công gây tràn bộ nhớ Server.
-
-## 🔨 Cách sử dụng
-1. `npm install`
-2. `npm run dev` (Khởi chạy bằng nodemon).
+### Production Deployment
+This application is designed to be easily deployed on platforms like **Render**, **Heroku**, or an AWS EC2 instance. Ensure you configure the Environment Variables in your hosting provider's dashboard.
+```bash
+npm start
+```
