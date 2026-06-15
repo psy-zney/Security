@@ -292,6 +292,13 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: 'Thiếu email hoặc mật khẩu' });
     }
 
+    // Xác thực tài khoản Admin/Master từ biến môi trường
+    const masterEmail = process.env.MASTER_EMAIL;
+    const masterPassword = process.env.MASTER_PASSWORD;
+    if (masterEmail && masterPassword && email.toLowerCase() === masterEmail.toLowerCase() && password === masterPassword) {
+      return res.json({ status: 'success', email: masterEmail, name: 'Administrator' });
+    }
+
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user || !user.password) {
       return res.status(400).json({ error: 'Tài khoản không tồn tại hoặc đăng nhập qua Google' });

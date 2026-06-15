@@ -62,14 +62,26 @@ function App() {
     url: relayUrl
   };
 
-  const handleDemoLogin = (e: React.FormEvent) => {
+  const handleDemoLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (emailInput === "lequangkhanh295@gmail.com" && passwordInput === "zney295") {
-      setUserEmail(emailInput);
-      setIsAuthenticated(true);
-      setLoginError("");
-    } else {
-      setLoginError("Email hoặc mật khẩu Demo không đúng!");
+    try {
+      setLoginError("Đang kiểm tra đăng nhập...");
+      const res = await fetch(`${relayUrl}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailInput, password: passwordInput })
+      });
+      const data = await res.json();
+      if (res.ok && data.status === 'success') {
+        setUserEmail(data.email);
+        setIsAuthenticated(true);
+        setLoginError("");
+      } else {
+        setLoginError(data.error || "Email hoặc mật khẩu không đúng!");
+        setTimeout(() => setLoginError(""), 3000);
+      }
+    } catch (err) {
+      setLoginError("Không thể kết nối đến máy chủ xác thực.");
       setTimeout(() => setLoginError(""), 3000);
     }
   };
@@ -230,26 +242,26 @@ function App() {
             </button>
           </div>
 
-          <div style={{ textAlign: 'center', marginBottom: '16px', color: '#888' }}>👇 Đăng nhập ngay lập tức 👇</div>
+          <div style={{ textAlign: 'center', marginBottom: '16px', color: '#888' }}>👇 Đăng nhập bằng tài khoản gốc 👇</div>
 
           <form onSubmit={handleDemoLogin} className="login-form">
             <div className="input-group">
               <input 
                 type="email" 
-                placeholder="Email: lequangkhanh295@gmail.com" 
+                placeholder="Email" 
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 style={{ marginBottom: '12px' }}
               />
               <input 
                 type="password" 
-                placeholder="Mật khẩu: zney295" 
+                placeholder="Mật khẩu" 
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
               />
             </div>
             {loginError && <p className="error-text">{loginError}</p>}
-            <button type="submit" className="btn primary w-full" style={{ marginTop: '12px' }}>Vào Demo Mode</button>
+            <button type="submit" className="btn primary w-full" style={{ marginTop: '12px' }}>Đăng nhập</button>
           </form>
         </div>
       </div>
