@@ -1,0 +1,629 @@
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  Animated,
+  Dimensions,
+  Vibration,
+  Image,
+  Easing,
+} from 'react-native';
+import { router } from 'expo-router';
+import { connectToRelay, sendCommand, disconnectRelay, isConnected } from '../lib/socket';
+import { loadPairingData, clearPairingData } from '../lib/storage';
+
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
+
+interface LogEntry {
+  id: string;
+  time: string;
+  message: string;
+  type: 'info' | 'alarm' | 'success' | 'error';
+  imageBase64?: string;
+}
+
+interface LocationInfo {
+  ip?: string;
+  query?: string;
+  city?: string;
+  regionName?: string;
+  country?: string;
+  lat?: number;
+  lon?: number;
+  isp?: string;
+  ssid?: string;
+  bssid?: string;
+  status?: string;
+}
+
+// Component tạo viền 7 màu chạy đuổi nhau (Chasing Border) mỏng và tinh tế
+const RainbowWrapper = ({ children, style, borderRadius = 20, borderWidth = 1.2 }: any) => {
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 4000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, []);
+
+  const rotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  return (
+    <View style={[{ borderRadius, overflow: 'hidden', padding: borderWidth }, style]}>
+      <Animated.View
+        style={{
+          position: 'absolute',
+          width: '200%',
+          height: '200%',
+          top: '-50%',
+          left: '-50%',
+          transform: [{ rotate }],
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <LinearGradient
+          colors={['transparent', 'rgba(255,255,255,0.05)', '#FF0000', '#00FF00', '#0000FF', 'rgba(255,255,255,0.05)', 'transparent']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ width: '100%', height: '100%' }}
+        />
+      </Animated.View>
+      <View style={{ backgroundColor: '#000000', borderRadius: borderRadius - borderWidth, flex: 1 }}>
+        {children}
+      </View>
+    </View>
+  );
+};
+
+export default function DashboardScreen() {
+  const [connected, setConnected] = useState(false);
+  const [pairing, setPairing] = useState<{ deviceId: string; url: string } | null>(null);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [location, setLocation] = useState<LocationInfo | null>(null);
+  const [lastAlarm, setLastAlarm] = useState<string | null>(null);
+  const rainbowAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const alarmAnim = useRef(new Animated.Value(0)).current;
+  const scrollRef = useRef<ScrollView>(null);
+
+  const alarmBg = alarmAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['rgba(255, 71, 87, 0.1)', 'rgba(255, 71, 87, 0.4)']
+  });
+
+  const addLog = useCallback((message: string, type: LogEntry['type'] = 'info', imageBase64?: string) => {
+    const now = new Date();
+    const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+    setLogs((prev) => [{ id: Date.now().toString() + Math.random().toString(), time, message, type, imageBase64 }, ...prev.slice(0, 49)]);
+  }, []);
+
+  const triggerAlarmAnimation = useCallback(() => {
+    Vibration.vibrate([0, 300, 200, 300, 200, 500]);
+    Animated.sequence([
+      Animated.timing(alarmAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.timing(alarmAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
+      Animated.timing(alarmAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.timing(alarmAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
+    ]).start();
+  }, [alarmAnim]);
+
+  useEffect(() => {
+    // Hiệu ứng chạy màu 7 sắc cầu vồng
+    Animated.loop(
+      Animated.timing(rainbowAnim, {
+        toValue: 1,
+        duration: 4000,
+        useNativeDriver: false,
+      })
+    ).start();
+
+    // Pulse animation for connection dot
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.4, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      ])
+    ).start();
+
+    // Load pairing và kết nối
+    loadPairingData().then((data) => {
+      if (!data) {
+        router.replace('/');
+        return;
+      }
+      setPairing({ deviceId: data.deviceId, url: data.url });
+      addLog(`Đang kết nối tới ${data.url}...`, 'info');
+
+      connectToRelay(
+        data.url,
+        data.secret || process.env.EXPO_PUBLIC_RELAY_SECRET_KEY || "DEFAULT_SECRET_KEY",
+        data.deviceId,
+        (statusData: any) => {
+          // Nhận cập nhật từ PC
+          const msg = statusData?.status || statusData?.message || JSON.stringify(statusData);
+          const isAlarm = msg.toLowerCase().includes('alarm') || msg.toLowerCase().includes('camera');
+          
+          if (isAlarm) {
+            setLastAlarm(msg);
+            triggerAlarmAnimation();
+            addLog(`🚨 ${msg}`, 'alarm', statusData?.image);
+          } else {
+            addLog(msg, 'info', statusData?.image);
+          }
+
+          // Cập nhật location nếu có
+          if (statusData?.location) {
+            setLocation(statusData.location);
+          }
+          if (statusData?.ssid) {
+            setLocation((prev) => ({ ...prev, ssid: statusData.ssid, bssid: statusData.bssid }));
+          }
+        },
+        () => {
+          setConnected(false);
+          addLog('Mất kết nối với Server!', 'error');
+        }
+      );
+
+      setConnected(true);
+      addLog(`✅ Đã kết nối với thiết bị: ${data.deviceId}`, 'success');
+    });
+
+    return () => {
+      disconnectRelay();
+    };
+  }, []);
+
+  const sendCmd = (command: string, label: string) => {
+    if (!isConnected()) {
+      Alert.alert('⚠️ Chưa kết nối', 'Đang chờ kết nối với Server. Vui lòng đợi giây lát...');
+      return;
+    }
+    const sent = sendCommand(command);
+    if (sent) {
+      addLog(`➤ Đã gửi lệnh: ${label}`, 'success');
+    } else {
+      addLog(`✗ Không thể gửi lệnh: ${label}`, 'error');
+    }
+  };
+
+  const handleUnpair = () => {
+    Alert.alert(
+      '⚠️ Huỷ ghép nối',
+      'Bạn có chắc muốn huỷ kết nối với thiết bị này?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xác nhận',
+          style: 'destructive',
+          onPress: async () => {
+            await clearPairingData();
+            disconnectRelay();
+            router.replace('/');
+          },
+        },
+      ]
+    );
+  };
+
+  const logTypeColor = (type: LogEntry['type']) => {
+    switch (type) {
+      case 'alarm': return '#FF4757';
+      case 'success': return '#2ed573';
+      case 'error': return '#FF6B81';
+      default: return '#888';
+    }
+  };
+
+  const borderColor = rainbowAnim.interpolate({
+    inputRange: [0, 0.14, 0.28, 0.42, 0.56, 0.7, 0.84, 1],
+    outputRange: ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#4B0082', '#8B00FF', '#FF0000']
+  });
+
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <RainbowWrapper borderRadius={0} borderWidth={2} style={{ width: '100%' }}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerTitle}>🛡️ Command Center</Text>
+            <Text style={styles.deviceId} numberOfLines={1}>
+              ID: {pairing?.deviceId ?? '---'}
+            </Text>
+          </View>
+          <View style={styles.connectionBadge}>
+            <Animated.View
+              style={[
+                styles.connectionDot,
+                { backgroundColor: connected ? '#00FF00' : '#FF4757' },
+                connected ? { transform: [{ scale: pulseAnim }] } : {},
+              ]}
+            />
+            <Text style={[styles.connectionText, { color: connected ? '#00FF00' : '#FF4757' }]}>
+              {connected ? 'Online' : 'Offline'}
+            </Text>
+          </View>
+        </View>
+      </RainbowWrapper>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* ALARM BANNER */}
+        {lastAlarm && (
+          <Animated.View style={[styles.alarmBanner, { backgroundColor: alarmBg }]}>
+            <Text style={styles.alarmIcon}>🚨</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.alarmTitle}>CẢNH BÁO XÂM NHẬP</Text>
+              <Text style={styles.alarmMsg} numberOfLines={2}>{lastAlarm}</Text>
+            </View>
+            <TouchableOpacity onPress={() => setLastAlarm(null)}>
+              <Text style={styles.alarmDismiss}>✕</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
+
+        {/* Location Card */}
+        {location && (
+          <RainbowWrapper borderRadius={20} borderWidth={2} style={{ margin: 16, marginBottom: 0 }}>
+            <View style={styles.cardInner}>
+              <Text style={styles.cardTitle}>📍 Vị trí Laptop</Text>
+              <View style={styles.locationGrid}>
+                {(location.ip || location.query) && <LocationRow label="Public IP" value={location.ip || location.query || ''} />}
+                {location.ssid && <LocationRow label="Wi-Fi (SSID)" value={location.ssid} highlight />}
+                {location.bssid && <LocationRow label="BSSID" value={location.bssid} />}
+                {location.city && <LocationRow label="Thành phố" value={`${location.city}, ${location.country}`} />}
+                {location.isp && <LocationRow label="Nhà mạng" value={location.isp} />}
+                {location.lat && <LocationRow label="Tọa độ" value={`${location.lat}, ${location.lon}`} />}
+              </View>
+            </View>
+          </RainbowWrapper>
+        )}
+
+        {/* Control Buttons */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>⚡ Điều khiển</Text>
+          <TouchableOpacity
+            style={[styles.commandBtn, styles.lockBtn]}
+            onPress={() => Alert.alert('🔒 Xác nhận khóa máy', 'Bạn có chắc muốn khóa Laptop ngay bây giờ?', [
+              { text: 'Hủy', style: 'cancel' },
+              { text: '🔒 KHÓA NGAY', style: 'destructive', onPress: () => sendCmd('lock_pc', 'Khóa máy tính') },
+            ])}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cmdIcon}>🔒</Text>
+            <View style={styles.cmdTextContainer}>
+              <Text style={styles.cmdTitle}>Khóa Máy Tính</Text>
+              <Text style={styles.cmdSubtitle}>Khoá PC ngay lập tức</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.commandBtn, styles.cameraBtn]}
+            onPress={() => sendCmd('capture_camera', 'Chụp ảnh mai phục')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cmdIcon}>📸</Text>
+            <View style={styles.cmdTextContainer}>
+              <Text style={styles.cmdTitle}>Chụp Ảnh Ngầm</Text>
+              <Text style={styles.cmdSubtitle}>Kích hoạt mai phục Camera</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.commandBtn, styles.locateBtn]}
+            onPress={() => sendCmd('request_location', 'Yêu cầu vị trí')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cmdIcon}>📡</Text>
+            <View style={styles.cmdTextContainer}>
+              <Text style={styles.cmdTitle}>Lấy Vị Trí Mới</Text>
+              <Text style={styles.cmdSubtitle}>Cập nhật lại IP truy cập hiện tại</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.commandBtn, styles.passwordBtn]}
+            onPress={() => Alert.prompt(
+              '🔑 Đổi mật khẩu PC',
+              'Nhập mật khẩu mới cho tài khoản Admin trên Windows:',
+              [
+                { text: 'Hủy', style: 'cancel' },
+                {
+                  text: 'Đổi Mật Khẩu',
+                  onPress: (password?: string) => {
+                    if (password) {
+                      sendCommand('change_password', { username: 'Admin', password });
+                    }
+                  }
+                }
+              ]
+            )}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cmdIcon}>🔑</Text>
+            <View style={styles.cmdTextContainer}>
+              <Text style={styles.cmdTitle}>Đổi Mật Khẩu PC</Text>
+              <Text style={styles.cmdSubtitle}>Khoá máy với mật khẩu mới</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.commandBtn, styles.usbBtn]}
+            onPress={() => Alert.alert('USB', 'Bạn có chắc chắn muốn khóa cổng USB?', [
+              { text: 'Hủy', style: 'cancel' },
+              { text: '🔒 Khóa', style: 'destructive', onPress: () => sendCmd('lock_usb', 'Khóa cổng USB') },
+            ])}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cmdIcon}>🛡️</Text>
+            <View style={styles.cmdTextContainer}>
+              <Text style={styles.cmdTitle}>Khóa USB</Text>
+              <Text style={styles.cmdSubtitle}>Vô hiệu hóa cổng dữ liệu USB</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.commandBtn, styles.usbUnlockBtn]}
+            onPress={() => sendCmd('unlock_usb', 'Mở khóa cổng USB')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cmdIcon}>🔓</Text>
+            <View style={styles.cmdTextContainer}>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.commandBtn, { backgroundColor: 'rgba(239,68,68,0.1)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.4)' }]}
+            onPress={() => Alert.prompt(
+              '⚠️ Tạm Ngưng Bảo Vệ',
+              'Nhập mã OTP 6 số hiển thị trên phần mềm Security ở Máy Tính:',
+              [
+                { text: 'Hủy', style: 'cancel' },
+                {
+                  text: 'Xác nhận tắt',
+                  style: 'destructive',
+                  onPress: (otp?: string) => {
+                    if (otp && otp.trim().length > 0) {
+                      const sent = sendCommand('kill_service', { otp: otp.trim() });
+                      if (sent) addLog(`➤ Đã gửi lệnh Tắt tiến trình bảo vệ`, 'success');
+                      else addLog(`✗ Không thể gửi lệnh Tắt tiến trình bảo vệ`, 'error');
+                    } else {
+                      Alert.alert('Lỗi', 'Vui lòng nhập mã OTP!');
+                    }
+                  }
+                }
+              ]
+            )}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cmdIcon}>🛑</Text>
+            <View style={styles.cmdTextContainer}>
+              <Text style={styles.cmdTitle}>Tắt Dịch Vụ Bảo Vệ</Text>
+              <Text style={styles.cmdSubtitle}>Nhập mã OTP để ngắt kết nối</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Activity Log */}
+        <View style={[styles.card, { borderColor: '#111' }]}>
+          <Text style={styles.cardTitle}>📋 Nhật ký hoạt động</Text>
+          {logs.length === 0 && (
+            <Text style={styles.emptyLog}>Chưa có hoạt động nào...</Text>
+          )}
+          {logs.map((log) => (
+            <View key={log.id} style={styles.logRow}>
+              <Text style={styles.logTime}>{log.time}</Text>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={[styles.logMsg, { color: logTypeColor(log.type) }]} numberOfLines={3}>
+                  {log.message}
+                </Text>
+                {log.imageBase64 && (
+                  <View style={{ marginTop: 8, marginBottom: 4, borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#2a2a3a' }}>
+                    <Image 
+                      source={{ uri: `data:image/jpeg;base64,${log.imageBase64}` }} 
+                      style={{ width: '100%', height: 200, resizeMode: 'cover' }} 
+                    />
+                  </View>
+                )}
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Unpair */}
+        <View style={[styles.card, { borderColor: 'transparent' }]}>
+          <TouchableOpacity style={styles.unpairBtn} onPress={handleUnpair}>
+            <Text style={styles.unpairText}>🔗 Huỷ ghép nối thiết bị</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
+  );
+}
+
+function LocationRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+
+  return (
+    <View style={styles.locationRow}>
+      <Text style={styles.locationLabel}>{label}</Text>
+      <Text style={[styles.locationValue, highlight && styles.locationHighlight]}>{value}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    backgroundColor: '#000000',
+  },
+  cardInner: {
+    backgroundColor: '#080808',
+    borderRadius: 18,
+    padding: 20,
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  deviceId: {
+    color: '#888',
+    fontSize: 11,
+    marginTop: 2,
+    maxWidth: width * 0.55,
+  },
+  connectionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#111',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  connectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  connectionText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  alarmBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    margin: 16,
+    marginBottom: 0,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#FF4757',
+    gap: 12,
+  },
+  alarmIcon: { fontSize: 28 },
+  alarmTitle: {
+    color: '#FF4757',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  alarmMsg: { color: '#ff8a8a', fontSize: 13 },
+  alarmDismiss: { color: '#FF4757', fontSize: 18, padding: 4 },
+  card: {
+    margin: 16,
+    marginBottom: 0,
+    backgroundColor: '#080808',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 2,
+  },
+  cardTitle: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  locationGrid: { gap: 8 },
+  locationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
+  },
+  locationLabel: { color: '#666', fontSize: 13 },
+  locationValue: { color: '#ccc', fontSize: 13, fontWeight: '600', maxWidth: '60%', textAlign: 'right' },
+  locationHighlight: { color: '#00D1FF', fontWeight: '700' },
+  commandBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    gap: 16,
+  },
+  lockBtn: {
+    backgroundColor: 'rgba(255,71,87,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,71,87,0.3)',
+  },
+  cameraBtn: {
+    backgroundColor: 'rgba(0,209,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,209,255,0.3)',
+  },
+  locateBtn: {
+    backgroundColor: 'rgba(0,255,0,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,255,0,0.3)',
+  },
+  passwordBtn: {
+    backgroundColor: 'rgba(255,165,2,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,165,2,0.4)',
+  },
+  usbBtn: {
+    backgroundColor: 'rgba(231,76,60,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(231,76,60,0.4)',
+  },
+  usbUnlockBtn: {
+    backgroundColor: 'rgba(52,152,219,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(52,152,219,0.4)',
+  },
+  cmdIcon: { fontSize: 28 },
+  cmdTextContainer: { flex: 1 },
+  cmdTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  cmdSubtitle: { color: '#999', fontSize: 12, marginTop: 2 },
+  logRow: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingVertical: 7,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
+  },
+  logTime: { color: '#555', fontSize: 11, fontFamily: 'monospace', minWidth: 56 },
+  logMsg: { fontSize: 12, flex: 1, lineHeight: 17 },
+  emptyLog: { color: '#444', fontSize: 13, textAlign: 'center', paddingVertical: 12 },
+  unpairBtn: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#333',
+    backgroundColor: '#0a0a0a',
+    alignItems: 'center',
+  },
+  unpairText: { color: '#FF4757', fontSize: 15, fontWeight: '600' },
+});

@@ -46,10 +46,10 @@ graph LR
     UI -.->|QR Code Pairing| Mobile
 ```
 
-1. **`1_windows_service` (Rust)**: The core engine. Runs as a `NT AUTHORITY\SYSTEM` service. It maintains a persistent Websocket connection to the Cloud Relay, executes hardware-level commands, and exposes a Named Pipe for the PC UI.
-2. **`2_pc_ui_app` (Tauri + React)**: The local management dashboard. Used strictly for initial setup, QR code pairing, generating OTPs, and triggering OTA updates.
-3. **`3_mobile_app` (React Native / Expo)**: The remote control center. Allows the user to monitor activity logs and send security commands on the go.
-4. **`4_cloud_relay` (Node.js + Express)**: A lightweight, stateless intermediary router that bridges the Mobile App and the Windows Service. It also hosts static binaries for OTA (Over-the-Air) updates.
+1. **`Service` (Rust)**: The core engine. Runs as a `NT AUTHORITY\SYSTEM` service. It maintains a persistent Websocket connection to the Cloud Relay, executes hardware-level commands, and exposes a Named Pipe for the PC UI.
+2. **`SecurityApp` (Tauri + React)**: The local management dashboard. Used strictly for initial setup, QR code pairing, generating OTPs, and triggering OTA updates.
+3. **`ControlApp` (React Native / Expo)**: The remote control center. Allows the user to monitor activity logs and send security commands on the go.
+4. **`Cloud` (Node.js + Express)**: A lightweight, stateless intermediary router that bridges the Mobile App and the Windows Service. It also hosts static binaries for OTA (Over-the-Air) updates.
 
 ---
 
@@ -58,7 +58,7 @@ graph LR
 Follow these steps to deploy the entire security suite from scratch.
 
 ### 1. Deploy the Cloud Relay
-1. Navigate to the `4_cloud_relay` directory.
+1. Navigate to the `Cloud` directory.
 2. Deploy this folder to a Node.js hosting provider (e.g., [Render](https://render.com), Heroku, or an AWS EC2 instance).
 3. Once deployed, note down your server URL (e.g., `https://my-security-relay.onrender.com`).
 
@@ -71,7 +71,7 @@ For maximum convenience, an automated build pipeline is provided. You need **Rus
 4. The system will automatically register the services and launch the PC UI.
 
 ### 3. Setup the Mobile App
-1. Navigate to the `3_mobile_app` directory.
+1. Navigate to the `ControlApp` directory.
 2. Install dependencies:
    ```bash
    npm install
@@ -93,7 +93,7 @@ For maximum convenience, an automated build pipeline is provided. You need **Rus
 
 ## 🛠️ Developer Commands
 
-- **OTA Updates**: Compile new `.exe` files in `1_windows_service`, place them in `4_cloud_relay/public/updates/`, increment the `version.json`, and push to your server. Users can update via a single click in the PC UI.
+- **OTA Updates**: Compile new `.exe` files in `Service`, place them in `Cloud/public/updates/`, increment the `version.json`, and push to your server. Users can update via a single click in the PC UI.
 - **Service Logs**: Debug logs for the Windows Service can be found at `C:\Windows\Temp\security_service.log`.
 
 <br/>

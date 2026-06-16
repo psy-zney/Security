@@ -106,7 +106,7 @@ function App() {
       const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
       const clientSecret = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
       if (!clientId || clientId.includes('PASTE_YOUR')) {
-        setLoginError("Hãy dán VITE_GOOGLE_CLIENT_ID thật vào file .env của 2_pc_ui_app.");
+        setLoginError("Hãy dán VITE_GOOGLE_CLIENT_ID thật vào file .env của SecurityApp.");
         return;
       }
 

@@ -8,7 +8,7 @@ echo ===================================================
 
 echo.
 echo [1/4] Dang bien dich Rust Services (main_service, watchdog)...
-cd 1_windows_service
+cd Service
 cargo build --release
 if %ERRORLEVEL% NEQ 0 (
     color 0C
@@ -20,7 +20,7 @@ cd ..
 
 echo.
 echo [2/4] Dang bien dich ung dung PC UI (Tauri)...
-cd 2_pc_ui_app
+cd SecurityApp
 call npm run tauri build
 if %ERRORLEVEL% NEQ 0 (
     color 0C
@@ -35,9 +35,9 @@ echo [3/4] Dang gom cac file da build vao thu muc "release"...
 if exist "release" rmdir /S /Q "release"
 mkdir release
 
-copy /Y "1_windows_service\target\release\main_service.exe" "release\main_service.exe" >nul
-copy /Y "1_windows_service\target\release\watchdog.exe" "release\watchdog.exe" >nul
-copy /Y "2_pc_ui_app\src-tauri\target\release\Security.exe" "release\Security.exe" >nul
+copy /Y "Service\target\release\main_service.exe" "release\main_service.exe" >nul
+copy /Y "Service\target\release\watchdog.exe" "release\watchdog.exe" >nul
+copy /Y "SecurityApp\src-tauri\target\release\SecurityApp.exe" "release\SecurityApp.exe" >nul
 
 echo.
 echo [4/4] Dang dong goi thanh file Security_Installer.zip...
