@@ -80,6 +80,23 @@
       50% { opacity: 0.4; }
       100% { top: 100%; opacity: 0; }
     }
+    
+    /* Data Particle Flow effect */
+    @keyframes data-flow {
+      0% { left: -20%; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { left: 120%; opacity: 0; }
+    }
+    .data-particle {
+      position: absolute;
+      top: -1px;
+      width: 12px;
+      height: 4px;
+      background: #6C63FF;
+      box-shadow: 0 0 10px #6C63FF, 0 0 20px #6C63FF;
+      animation: data-flow 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
     .scanner::after {
       content: '';
       position: absolute;
@@ -241,9 +258,11 @@
           <div class="mt-auto text-[10px] text-brand-indigo font-bold tracking-wider hover:underline uppercase" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
         </div>
 
-        <!-- Arrow 1 -->
-        <div class="hidden lg:flex items-center justify-center text-brand-indigo/50">
-          <svg class="w-8 h-8 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+        <!-- Connection 1 -->
+        <div class="hidden lg:flex items-center justify-center w-12 xl:w-20 relative">
+          <div class="w-full h-[2px] bg-brand-indigo/20 relative overflow-hidden">
+            <div class="data-particle"></div>
+          </div>
         </div>
 
         <!-- Node 2: Relay Cloud -->
@@ -258,9 +277,11 @@
           <div class="mt-auto text-[10px] text-brand-indigo font-bold tracking-wider hover:underline uppercase" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
         </div>
 
-        <!-- Arrow 2 -->
-        <div class="hidden lg:flex items-center justify-center text-brand-indigo/50">
-          <svg class="w-8 h-8 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+        <!-- Connection 2 -->
+        <div class="hidden lg:flex items-center justify-center w-12 xl:w-20 relative">
+          <div class="w-full h-[2px] bg-brand-indigo/20 relative overflow-hidden">
+            <div class="data-particle" style="animation-delay: 0.5s;"></div>
+          </div>
         </div>
 
         <!-- Node 3: Rust Service -->
@@ -275,9 +296,11 @@
           <div class="mt-auto text-[10px] text-brand-indigo font-bold tracking-wider hover:underline uppercase" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
         </div>
 
-        <!-- Arrow 3 -->
-        <div class="hidden lg:flex items-center justify-center text-brand-indigo/50">
-          <svg class="w-8 h-8 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+        <!-- Connection 3 -->
+        <div class="hidden lg:flex items-center justify-center w-12 xl:w-20 relative">
+          <div class="w-full h-[2px] bg-brand-indigo/20 relative overflow-hidden">
+            <div class="data-particle" style="animation-delay: 1s;"></div>
+          </div>
         </div>
 
         <!-- Node 4: SecurityApp -->
