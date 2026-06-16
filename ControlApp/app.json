@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ControlApp",
-    "slug": "control-app",
+    "slug": "security-command",
     "version": "1.0.0",
     "orientation": "portrait",
     "platforms": [
@@ -41,7 +41,7 @@
       "expo-asset",
       "expo-web-browser"
     ],
-    "scheme": "control-app",
+    "scheme": "security-command",
     "experiments": {
       "typedRoutes": true
     },
