@@ -97,6 +97,22 @@
       box-shadow: 0 0 10px #6C63FF, 0 0 20px #6C63FF;
       animation: data-flow 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
+    
+    @keyframes data-flow-vertical {
+      0% { top: -20%; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { top: 120%; opacity: 0; }
+    }
+    .data-particle-vertical {
+      position: absolute;
+      left: -1px;
+      width: 4px;
+      height: 12px;
+      background: #6C63FF;
+      box-shadow: 0 0 10px #6C63FF, 0 0 20px #6C63FF;
+      animation: data-flow-vertical 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
     .scanner::after {
       content: '';
       position: absolute;
@@ -246,73 +262,89 @@
       <!-- Interactive Node Grid/Flex -->
       <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 mb-8 w-full relative">
         
-        <!-- Node 1: Mobile App -->
-        <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:-translate-y-2 indigo-border-glow flex flex-col justify-between flex-1 min-h-[200px]" id="node-mobile" 
-             data-info-vi="Ứng dụng di động (React Native) gửi các yêu cầu điều khiển như Chụp ảnh ngầm, Đổi mật khẩu Windows, Khóa cổng USB qua Socket.io. Các request được ký bằng chữ ký HMAC-SHA256 kèm theo Timestamp hiện tại."
-             data-info-en="Mobile App (React Native) sends control commands like Stealth Camera Capture, Windows Password Change, and USB Lock via Socket.io. Requests are signed using HMAC-SHA256 with a unique current Timestamp.">
-          <div class="space-y-4">
-            <div class="text-brand-indigo text-4xl">📱</div>
-            <h3 class="text-lg font-bold uppercase tracking-wide" data-vi="Mobile App" data-en="Mobile App">Mobile App</h3>
-            <span class="inline-block text-[10px] font-bold tracking-wider px-2 py-0.5 bg-white/5 text-gray-400 sharp uppercase">React Native</span>
+        <!-- Column 1: Mobile App -->
+        <div class="flex-1 w-full flex justify-end">
+          <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:-translate-y-2 indigo-border-glow flex flex-col justify-between w-full lg:max-w-[320px] min-h-[200px]" id="node-mobile" 
+               data-info-vi="Ứng dụng di động (React Native) gửi các yêu cầu điều khiển như Chụp ảnh ngầm, Đổi mật khẩu Windows, Khóa cổng USB qua Socket.io. Các request được ký bằng chữ ký HMAC-SHA256 kèm theo Timestamp hiện tại."
+               data-info-en="Mobile App (React Native) sends control commands like Stealth Camera Capture, Windows Password Change, and USB Lock via Socket.io. Requests are signed using HMAC-SHA256 with a unique current Timestamp.">
+            <div class="space-y-4">
+              <div class="text-brand-indigo text-4xl">📱</div>
+              <h3 class="text-lg font-bold uppercase tracking-wide" data-vi="ControlApp" data-en="ControlApp">ControlApp</h3>
+              <span class="inline-block text-[10px] font-bold tracking-wider px-2 py-0.5 bg-white/5 text-gray-400 sharp uppercase">React Native (Remote)</span>
+            </div>
+            <div class="mt-auto text-[10px] text-brand-indigo font-bold tracking-wider hover:underline uppercase" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
           </div>
-          <div class="mt-auto text-[10px] text-brand-indigo font-bold tracking-wider hover:underline uppercase" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
         </div>
 
         <!-- Connection 1 -->
-        <div class="hidden lg:flex items-center justify-center w-12 xl:w-20 relative">
+        <div class="hidden lg:flex flex-col items-center justify-center w-32 relative group">
+          <div class="text-[9px] text-gray-400 mb-2 font-mono text-center uppercase leading-tight">Commands<br>(HMAC signed)</div>
           <div class="w-full h-[2px] bg-brand-indigo/20 relative overflow-hidden">
             <div class="data-particle"></div>
           </div>
+          <div class="text-[9px] text-brand-indigo mt-2 font-mono text-center uppercase leading-tight">WebSockets</div>
         </div>
 
-        <!-- Node 2: Relay Cloud -->
-        <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:-translate-y-2 indigo-border-glow flex flex-col justify-between flex-1 min-h-[200px]" id="node-relay"
-             data-info-vi="Máy chủ trung gian Node.js đóng vai trò điều phối. Nó kiểm tra Timestamp (chống tấn công phát lại - Replay attack trong 60s) và so khớp chữ ký HMAC-SHA256. Nếu PC đang offline, Relay sẽ lưu giữ tối đa 50 lệnh mới nhất trong Memory Queue."
-             data-info-en="The Node.js central coordinator. It validates the timestamp to prevent replay attacks (< 60s window) and verifies the HMAC-SHA256 signature. If the target PC is offline, it queues up to 50 latest commands in its memory buffer.">
-          <div class="space-y-4">
-            <div class="text-brand-indigo text-4xl">☁️</div>
-            <h3 class="text-lg font-bold uppercase tracking-wide" data-vi="Cloud Relay Server" data-en="Cloud Relay Server">Cloud Relay Server</h3>
-            <span class="inline-block text-[10px] font-bold tracking-wider px-2 py-0.5 bg-white/5 text-gray-400 sharp uppercase">Node.js / Socket.io</span>
+        <!-- Column 2: Relay Cloud -->
+        <div class="flex-1 w-full flex justify-center">
+          <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:-translate-y-2 indigo-border-glow flex flex-col justify-between w-full lg:max-w-[320px] min-h-[200px]" id="node-relay"
+               data-info-vi="Máy chủ trung gian Node.js đóng vai trò điều phối. Nó kiểm tra Timestamp (chống tấn công phát lại - Replay attack trong 60s) và so khớp chữ ký HMAC-SHA256. Nếu PC đang offline, Relay sẽ lưu giữ tối đa 50 lệnh mới nhất trong Memory Queue."
+               data-info-en="The Node.js central coordinator. It validates the timestamp to prevent replay attacks (< 60s window) and verifies the HMAC-SHA256 signature. If the target PC is offline, it queues up to 50 latest commands in its memory buffer.">
+            <div class="space-y-4">
+              <div class="text-brand-indigo text-4xl">☁️</div>
+              <h3 class="text-lg font-bold uppercase tracking-wide" data-vi="Cloud Relay Server" data-en="Cloud Relay Server">Cloud Relay Server</h3>
+              <span class="inline-block text-[10px] font-bold tracking-wider px-2 py-0.5 bg-white/5 text-gray-400 sharp uppercase">Node.js / Socket.io</span>
+            </div>
+            <div class="mt-auto text-[10px] text-brand-indigo font-bold tracking-wider hover:underline uppercase" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
           </div>
-          <div class="mt-auto text-[10px] text-brand-indigo font-bold tracking-wider hover:underline uppercase" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
         </div>
 
         <!-- Connection 2 -->
-        <div class="hidden lg:flex items-center justify-center w-12 xl:w-20 relative">
+        <div class="hidden lg:flex flex-col items-center justify-center w-32 relative group">
+          <div class="text-[9px] text-gray-400 mb-2 font-mono text-center uppercase leading-tight">Real-time<br>Forwarding</div>
           <div class="w-full h-[2px] bg-brand-indigo/20 relative overflow-hidden">
             <div class="data-particle" style="animation-delay: 0.5s;"></div>
           </div>
+          <div class="text-[9px] text-brand-indigo mt-2 font-mono text-center uppercase leading-tight">System Logs</div>
         </div>
 
-        <!-- Node 3: Rust Service -->
-        <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:-translate-y-2 indigo-border-glow flex flex-col justify-between flex-1 min-h-[200px]" id="node-service"
-             data-info-vi="Windows Service chạy ngầm bằng Rust với quyền tối cao SYSTEM. Nó lắng nghe lệnh từ Cloud Relay, trực tiếp thực thi các tác vụ hệ thống (đổi mật khẩu Windows, tắt driver USB, bật camera chụp ảnh lén) và báo cáo trạng thái ngược lại."
-             data-info-en="Rust background service running with SYSTEM privileges. It listens to commands from the Cloud Relay, directly executes core system tasks (modifying passwords, locking USB root hubs, stealth camera snap), and reports execution state back.">
-          <div class="space-y-4">
-            <div class="text-brand-indigo text-4xl">⚙️</div>
-            <h3 class="text-lg font-bold uppercase tracking-wide" data-vi="Rust Windows Service" data-en="Rust Windows Service">Rust Windows Service</h3>
-            <span class="inline-block text-[10px] font-bold tracking-wider px-2 py-0.5 bg-white/5 text-gray-400 sharp uppercase">Rust / SYSTEM Privileges</span>
+        <!-- Column 3: Local PC (Service & UI) -->
+        <div class="flex-1 w-full flex flex-col items-center relative p-6 pt-10 border border-brand-indigo/30 rounded-xl bg-brand-indigo/5">
+          <div class="absolute -top-3 left-6 bg-black px-3 py-1 text-brand-indigo text-[10px] font-mono uppercase tracking-widest border border-brand-indigo/30 rounded shadow-[0_0_10px_rgba(108,99,255,0.2)]">Local Windows PC</div>
+          
+          <!-- Node 3: Rust Service -->
+          <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] indigo-border-glow flex flex-col justify-between w-full lg:max-w-[320px] min-h-[160px] z-10 bg-black/60" id="node-service"
+               data-info-vi="Windows Service chạy ngầm bằng Rust với quyền tối cao SYSTEM. Nó lắng nghe lệnh từ Cloud Relay, trực tiếp thực thi các tác vụ hệ thống (đổi mật khẩu Windows, tắt driver USB, bật camera chụp ảnh lén) và báo cáo trạng thái ngược lại."
+               data-info-en="Rust background service running with SYSTEM privileges. It listens to commands from the Cloud Relay, directly executes core system tasks (modifying passwords, locking USB root hubs, stealth camera snap), and reports execution state back.">
+            <div class="space-y-4">
+              <div class="flex items-center gap-3">
+                <div class="text-brand-indigo text-2xl">⚙️</div>
+                <h3 class="text-base font-bold uppercase tracking-wide" data-vi="Windows Service" data-en="Windows Service">Windows Service</h3>
+              </div>
+              <span class="inline-block text-[9px] font-bold tracking-wider px-2 py-0.5 bg-white/5 text-gray-400 sharp uppercase">Rust / SYSTEM Privileges</span>
+            </div>
           </div>
-          <div class="mt-auto text-[10px] text-brand-indigo font-bold tracking-wider hover:underline uppercase" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
-        </div>
 
-        <!-- Connection 3 -->
-        <div class="hidden lg:flex items-center justify-center w-12 xl:w-20 relative">
-          <div class="w-full h-[2px] bg-brand-indigo/20 relative overflow-hidden">
-            <div class="data-particle" style="animation-delay: 1s;"></div>
+          <!-- Vertical Connection 3 -->
+          <div class="flex items-center justify-center h-16 relative w-full lg:max-w-[320px]">
+            <div class="absolute left-0 w-1/2 pr-6 text-[9px] text-brand-indigo font-mono text-right uppercase leading-tight">Local IPC<br>Named Pipes</div>
+            <div class="h-full w-[2px] bg-brand-indigo/20 relative overflow-hidden">
+               <div class="data-particle-vertical" style="animation-delay: 1.0s;"></div>
+            </div>
           </div>
-        </div>
 
-        <!-- Node 4: SecurityApp -->
-        <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:-translate-y-2 indigo-border-glow flex flex-col justify-between flex-1 min-h-[200px]" id="node-ui"
-             data-info-vi="Giao diện người dùng PC (Tauri + React) giúp quản trị cấu hình (Địa chỉ Relay, Secret Key) tại máy tính và giao tiếp với Rust Service thông qua Named Pipe cục bộ."
-             data-info-en="PC UI application (Tauri + React) allowing local configuration management (Relay URL, Secret Key) and interacting with the Rust Service via a local Named Pipe connection.">
-          <div class="space-y-4">
-            <div class="text-brand-indigo text-4xl">🖥️</div>
-            <h3 class="text-lg font-bold uppercase tracking-wide" data-vi="SecurityApp" data-en="SecurityApp">SecurityApp</h3>
-            <span class="inline-block text-[10px] font-bold tracking-wider px-2 py-0.5 bg-white/5 text-gray-400 sharp uppercase">Tauri / React + TS</span>
+          <!-- Node 4: SecurityApp -->
+          <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] indigo-border-glow flex flex-col justify-between w-full lg:max-w-[320px] min-h-[160px] z-10 bg-black/60" id="node-ui"
+               data-info-vi="Giao diện người dùng PC (Tauri + React) giúp quản trị cấu hình (Địa chỉ Relay, Secret Key) tại máy tính và giao tiếp với Rust Service thông qua Named Pipe cục bộ."
+               data-info-en="PC UI application (Tauri + React) allowing local configuration management (Relay URL, Secret Key) and interacting with the Rust Service via a local Named Pipe connection.">
+            <div class="space-y-4">
+              <div class="flex items-center gap-3">
+                <div class="text-brand-indigo text-2xl">🖥️</div>
+                <h3 class="text-base font-bold uppercase tracking-wide" data-vi="SecurityApp" data-en="SecurityApp">SecurityApp</h3>
+              </div>
+              <span class="inline-block text-[9px] font-bold tracking-wider px-2 py-0.5 bg-white/5 text-gray-400 sharp uppercase">Tauri / React + TS</span>
+            </div>
           </div>
-          <div class="mt-auto text-[10px] text-brand-indigo font-bold tracking-wider hover:underline uppercase" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
         </div>
 
       </div>
