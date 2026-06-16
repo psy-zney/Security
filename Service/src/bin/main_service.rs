@@ -93,9 +93,6 @@ pub fn decrypt_dpapi(encoded_data: &str) -> Result<Vec<u8>, String> {
     }
 }
 
-pub static SERVICE_PAUSED: AtomicBool = AtomicBool::new(false);
-pub static KILL_OTP: Mutex<Option<String>> = Mutex::new(None);
-
 const SERVICE_NAME: &str = "SecurityService";
 
 // ---------------------------------------------------------
@@ -333,7 +330,7 @@ fn start_socketio_client(emit_rx: mpsc::Receiver<String>) {
         sys_log!("[SocketIO] Background thread bắt đầu.");
         
         loop {
-            if SERVICE_PAUSED.load(Ordering::SeqCst) {
+            if security::SERVICE_PAUSED.load(Ordering::SeqCst) {
                 std::thread::sleep(Duration::from_secs(2));
                 continue;
             }
@@ -373,14 +370,14 @@ fn start_socketio_client(emit_rx: mpsc::Receiver<String>) {
                         if cmd == "kill_service" {
                             let otp = val["payload"]["otp"].as_str().unwrap_or("");
                             let mut match_otp = false;
-                            if let Ok(lock) = crate::KILL_OTP.lock() {
+                            if let Ok(lock) = security::KILL_OTP.lock() {
                                 if let Some(ref saved) = *lock {
                                     if saved == otp { match_otp = true; }
                                 }
                             }
                             if match_otp {
                                 sys_log!("[SocketIO] Mã OTP hợp lệ. Đang ngắt kết nối và tạm ngưng Service!");
-                                crate::SERVICE_PAUSED.store(true, Ordering::SeqCst);
+                                security::SERVICE_PAUSED.store(true, Ordering::SeqCst);
                                 let _ = client.disconnect();
                             } else {
                                 let _ = client.emit("status_update", json!({"deviceId": *device_id_for_on, "status": "Sai mã OTP!"}));
@@ -454,7 +451,7 @@ fn start_socketio_client(emit_rx: mpsc::Receiver<String>) {
             
             // Loop để duy trì thread socket, đồng thời liên tục check tín hiệu từ Named Pipe nội bộ!
             loop { 
-                if crate::SERVICE_PAUSED.load(Ordering::SeqCst) {
+                if security::SERVICE_PAUSED.load(Ordering::SeqCst) {
                     let _ = client.disconnect();
                     break;
                 }
