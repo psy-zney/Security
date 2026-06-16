@@ -42,6 +42,12 @@ io.use(async (socket, next) => {
   try {
     const query = socket.handshake.query || {};
     const clientType = query.clientType || socket.handshake.auth?.clientType || 'unknown';
+
+    // Cho phép client ping_viewer kết nối mà không cần xác thực
+    if (clientType === 'ping_viewer') {
+      return next();
+    }
+
     const deviceId = query.deviceId || socket.handshake.auth?.deviceId;
 
     if (!deviceId) {
@@ -106,6 +112,9 @@ io.use(async (socket, next) => {
 
 io.on('connection', (socket) => {
   console.log(`[+] Mới kết nối: ${socket.id}`);
+
+  // Gửi ping ngay khi có client kết nối để cập nhật trạng thái ngay lập tức
+  socket.emit('server_ping', { status: 'active', timestamp: Date.now() });
 
   // Phân loại client (vd: type = 'pc_service', 'mobile_app')
   socket.on('register', async (data) => {
