@@ -1,4 +1,4 @@
-# 🖥️ Security System: PC UI Dashboard
+# 🖥️ Security System: SecurityApp
 
 This is the local configuration and management dashboard for the Windows machine, built using the Tauri framework (Rust backend + React/TypeScript frontend).
 

@@ -1,4 +1,4 @@
-# 📱 Security System: Mobile App
+# 📱 Security System: ControlApp
 
 A React Native mobile application built with the Expo framework, serving as the remote control center for the security system.
 

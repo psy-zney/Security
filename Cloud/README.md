@@ -1,4 +1,4 @@
-# ☁️ Security System: Cloud Relay
+# ☁️ Security System: Cloud
 
 A lightweight Node.js Express server with Socket.IO that routes encrypted commands between the Mobile App and the Windows Background Service.
 

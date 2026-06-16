@@ -31,7 +31,7 @@ sc stop SecurityService >nul 2>&1
 timeout /t 2 /nobreak >nul
 taskkill /F /IM watchdog.exe >nul 2>&1
 taskkill /F /IM main_service.exe >nul 2>&1
-taskkill /F /IM Security.exe >nul 2>&1
+taskkill /F /IM SecurityApp.exe >nul 2>&1
 sc delete SecurityWatchdog >nul 2>&1
 sc delete SecurityService >nul 2>&1
 

@@ -1,4 +1,4 @@
-# 🛡️ Security System: Background Service
+# 🛡️ Security System: Service
 
 This module is the core engine of the Security System. It is written in Rust and runs as a persistent background service on Windows (`NT AUTHORITY\SYSTEM`).
 
