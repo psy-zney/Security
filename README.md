@@ -24,7 +24,7 @@ This project is a multi-layered security system that allows users to remotely co
 The system consists of 4 highly decoupled modules:
 
 ```mermaid
-graph TD
+graph LR
     subgraph Client [📱 Mobile App]
         Mobile[Expo React Native]
     end
@@ -34,7 +34,7 @@ graph TD
     end
 
     subgraph Desktop [💻 Windows PC]
-        UI[PC UI App - Tauri/React]
+        UI[SecurityApp - Tauri/React]
         Service[Background Service - Rust]
         Watchdog[Watchdog Service - Rust]
     end
@@ -43,6 +43,7 @@ graph TD
     Service <-->|Socket.IO Events| Relay
     UI <-->|Named Pipes IPC| Service
     Watchdog -->|Process Monitoring| Service
+    UI -.->|QR Code Pairing| Mobile
 ```
 
 1. **`1_windows_service` (Rust)**: The core engine. Runs as a `NT AUTHORITY\SYSTEM` service. It maintains a persistent Websocket connection to the Cloud Relay, executes hardware-level commands, and exposes a Named Pipe for the PC UI.
