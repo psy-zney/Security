@@ -226,6 +226,36 @@
         </p>
       </div>
 
+      <!-- Architecture Diagram (Mermaid) -->
+      <div class="mb-16 flex justify-center overflow-x-auto">
+        <div class="mermaid p-6 glass-panel sharp indigo-glow rounded-xl bg-black/50">
+          graph TD
+            %% Core Nodes
+            M["📱 Mobile App<br/>(React Native)"]
+            C["☁️ Cloud Relay Server<br/>(Node.js + Socket.io)"]
+            S["⚙️ Windows Service<br/>(Rust + SYSTEM Privileges)"]
+            U["🖥️ PC UI Admin<br/>(Tauri + React)"]
+
+            %% Connections
+            M -- "Commands (HMAC signed)<br/>WebSockets / SSE" --> C
+            C -- "Real-time Forwarding<br/>& Offline Queueing" --> S
+            S -- "System Logs / Status<br/>WebSockets" --> C
+            C -- "Status Updates<br/>WebSockets" --> M
+            U -- "Local IPC<br/>Named Pipes" --> S
+            
+            %% Styling
+            classDef mobile fill:#111,stroke:#6C63FF,stroke-width:2px,color:#fff;
+            classDef cloud fill:#111,stroke:#00D1FF,stroke-width:2px,color:#fff;
+            classDef rust fill:#111,stroke:#FF4757,stroke-width:2px,color:#fff;
+            classDef tauri fill:#111,stroke:#FFA502,stroke-width:2px,color:#fff;
+            
+            class M mobile
+            class C cloud
+            class S rust
+            class U tauri
+        </div>
+      </div>
+
       <!-- Interactive Node Grid/Flex -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch mb-8">
         
@@ -375,5 +405,18 @@
 
   <!-- App logic JavaScript -->
   <script src="app.js"></script>
+  <!-- Mermaid.js for diagrams -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      fontFamily: 'Space Grotesk, sans-serif',
+      securityLevel: 'loose',
+      flowchart: {
+        curve: 'basis'
+      }
+    });
+  </script>
 </body>
 </html>
