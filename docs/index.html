@@ -227,10 +227,10 @@
       </div>
 
       <!-- Interactive Node Grid/Flex -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch mb-8">
+      <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 mb-8 w-full relative">
         
         <!-- Node 1: Mobile App -->
-        <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] indigo-border-glow flex flex-col justify-between" id="node-mobile" 
+        <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:-translate-y-2 indigo-border-glow flex flex-col justify-between flex-1 min-h-[200px]" id="node-mobile" 
              data-info-vi="Ứng dụng di động (React Native) gửi các yêu cầu điều khiển như Chụp ảnh ngầm, Đổi mật khẩu Windows, Khóa cổng USB qua Socket.io. Các request được ký bằng chữ ký HMAC-SHA256 kèm theo Timestamp hiện tại."
              data-info-en="Mobile App (React Native) sends control commands like Stealth Camera Capture, Windows Password Change, and USB Lock via Socket.io. Requests are signed using HMAC-SHA256 with a unique current Timestamp.">
           <div class="space-y-4">
@@ -238,11 +238,16 @@
             <h3 class="text-lg font-bold uppercase tracking-wide" data-vi="Mobile App" data-en="Mobile App">Mobile App</h3>
             <span class="inline-block text-[10px] font-bold tracking-wider px-2 py-0.5 bg-white/5 text-gray-400 sharp uppercase">React Native</span>
           </div>
-          <div class="mt-6 text-xs text-brand-indigo font-bold tracking-wider hover:underline" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
+          <div class="mt-auto text-[10px] text-brand-indigo font-bold tracking-wider hover:underline uppercase" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
+        </div>
+
+        <!-- Arrow 1 -->
+        <div class="hidden lg:flex items-center justify-center text-brand-indigo/50">
+          <svg class="w-8 h-8 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
         </div>
 
         <!-- Node 2: Relay Cloud -->
-        <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] indigo-border-glow flex flex-col justify-between" id="node-relay"
+        <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:-translate-y-2 indigo-border-glow flex flex-col justify-between flex-1 min-h-[200px]" id="node-relay"
              data-info-vi="Máy chủ trung gian Node.js đóng vai trò điều phối. Nó kiểm tra Timestamp (chống tấn công phát lại - Replay attack trong 60s) và so khớp chữ ký HMAC-SHA256. Nếu PC đang offline, Relay sẽ lưu giữ tối đa 50 lệnh mới nhất trong Memory Queue."
              data-info-en="The Node.js central coordinator. It validates the timestamp to prevent replay attacks (< 60s window) and verifies the HMAC-SHA256 signature. If the target PC is offline, it queues up to 50 latest commands in its memory buffer.">
           <div class="space-y-4">
@@ -250,11 +255,16 @@
             <h3 class="text-lg font-bold uppercase tracking-wide" data-vi="Cloud Relay Server" data-en="Cloud Relay Server">Cloud Relay Server</h3>
             <span class="inline-block text-[10px] font-bold tracking-wider px-2 py-0.5 bg-white/5 text-gray-400 sharp uppercase">Node.js / Socket.io</span>
           </div>
-          <div class="mt-6 text-xs text-brand-indigo font-bold tracking-wider hover:underline" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
+          <div class="mt-auto text-[10px] text-brand-indigo font-bold tracking-wider hover:underline uppercase" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
+        </div>
+
+        <!-- Arrow 2 -->
+        <div class="hidden lg:flex items-center justify-center text-brand-indigo/50">
+          <svg class="w-8 h-8 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
         </div>
 
         <!-- Node 3: Rust Service -->
-        <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] indigo-border-glow flex flex-col justify-between" id="node-service"
+        <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:-translate-y-2 indigo-border-glow flex flex-col justify-between flex-1 min-h-[200px]" id="node-service"
              data-info-vi="Windows Service chạy ngầm bằng Rust với quyền tối cao SYSTEM. Nó lắng nghe lệnh từ Cloud Relay, trực tiếp thực thi các tác vụ hệ thống (đổi mật khẩu Windows, tắt driver USB, bật camera chụp ảnh lén) và báo cáo trạng thái ngược lại."
              data-info-en="Rust background service running with SYSTEM privileges. It listens to commands from the Cloud Relay, directly executes core system tasks (modifying passwords, locking USB root hubs, stealth camera snap), and reports execution state back.">
           <div class="space-y-4">
@@ -262,11 +272,16 @@
             <h3 class="text-lg font-bold uppercase tracking-wide" data-vi="Rust Windows Service" data-en="Rust Windows Service">Rust Windows Service</h3>
             <span class="inline-block text-[10px] font-bold tracking-wider px-2 py-0.5 bg-white/5 text-gray-400 sharp uppercase">Rust / SYSTEM Privileges</span>
           </div>
-          <div class="mt-6 text-xs text-brand-indigo font-bold tracking-wider hover:underline" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
+          <div class="mt-auto text-[10px] text-brand-indigo font-bold tracking-wider hover:underline uppercase" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
+        </div>
+
+        <!-- Arrow 3 -->
+        <div class="hidden lg:flex items-center justify-center text-brand-indigo/50">
+          <svg class="w-8 h-8 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
         </div>
 
         <!-- Node 4: SecurityApp -->
-        <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] indigo-border-glow flex flex-col justify-between" id="node-ui"
+        <div class="node glass-panel sharp p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:-translate-y-2 indigo-border-glow flex flex-col justify-between flex-1 min-h-[200px]" id="node-ui"
              data-info-vi="Giao diện người dùng PC (Tauri + React) giúp quản trị cấu hình (Địa chỉ Relay, Secret Key) tại máy tính và giao tiếp với Rust Service thông qua Named Pipe cục bộ."
              data-info-en="PC UI application (Tauri + React) allowing local configuration management (Relay URL, Secret Key) and interacting with the Rust Service via a local Named Pipe connection.">
           <div class="space-y-4">
@@ -274,7 +289,7 @@
             <h3 class="text-lg font-bold uppercase tracking-wide" data-vi="SecurityApp" data-en="SecurityApp">SecurityApp</h3>
             <span class="inline-block text-[10px] font-bold tracking-wider px-2 py-0.5 bg-white/5 text-gray-400 sharp uppercase">Tauri / React + TS</span>
           </div>
-          <div class="mt-6 text-xs text-brand-indigo font-bold tracking-wider hover:underline" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
+          <div class="mt-auto text-[10px] text-brand-indigo font-bold tracking-wider hover:underline uppercase" data-vi="Xem chi tiết →" data-en="Details →">Xem chi tiết →</div>
         </div>
 
       </div>
