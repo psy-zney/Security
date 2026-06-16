@@ -24,25 +24,28 @@ echo ===================================================
 echo   DANG CAI DAT SECURITY SYSTEM...
 echo ===================================================
 
-:: 2. Copy file he thong
-echo [1/5] Dang sao chep tap tin vao he thong...
+:: 2. Dừng và xóa Service cũ (nếu có)
+echo [1/5] Dang dung va go bo dich vu cu...
+sc stop SecurityWatchdog >nul 2>&1
+sc stop SecurityService >nul 2>&1
+timeout /t 2 /nobreak >nul
+taskkill /F /IM watchdog.exe >nul 2>&1
+taskkill /F /IM main_service.exe >nul 2>&1
+taskkill /F /IM Security.exe >nul 2>&1
+sc delete SecurityWatchdog >nul 2>&1
+sc delete SecurityService >nul 2>&1
+
+:: 3. Copy file he thong
+echo [2/5] Dang sao chep tap tin vao he thong...
 mkdir "C:\Program Files\SecuritySystem" 2>nul
 copy /y "..\release\main_service.exe" "C:\Program Files\SecuritySystem\main_service.exe" >nul
 copy /y "..\release\watchdog.exe" "C:\Program Files\SecuritySystem\watchdog.exe" >nul
-:: Lưu ý: Trong thư mục release bây giờ app mang tên Security.exe (đã đổi từ SecurityApp)
 copy /y "..\release\Security.exe" "C:\Program Files\SecuritySystem\Security.exe" >nul
 
-:: 3. Dang ky va chay Windows Services
-echo [2/5] Dang dang ky he thong bao ve ngam...
-sc stop SecurityService >nul 2>&1
-sc stop SecurityWatchdog >nul 2>&1
-sc delete SecurityService >nul 2>&1
-sc delete SecurityWatchdog >nul 2>&1
-
+:: 4. Dang ky va chay Windows Services
+echo [3/5] Dang dang ky va khoi dong he thong bao ve ngam...
 sc create SecurityService binPath= "C:\Program Files\SecuritySystem\main_service.exe" start= auto >nul
 sc create SecurityWatchdog binPath= "C:\Program Files\SecuritySystem\watchdog.exe" start= auto >nul
-
-echo [3/5] Dang khoi dong dich vu (main_service va watchdog)...
 sc start SecurityService >nul
 sc start SecurityWatchdog >nul
 

@@ -17,15 +17,14 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Ứng dụng cần Camera để quét mã QR ghép nối thiết bị.",
         "NSFaceIDUsageDescription": "Dùng để xác thực bảo mật.",
-        "UIUserInterfaceStyle": "Dark"
+        "UIUserInterfaceStyle": "Dark",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.zney.security",
       "versionCode": 1,
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ]
