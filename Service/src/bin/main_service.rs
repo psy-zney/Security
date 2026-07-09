@@ -275,8 +275,12 @@ struct AppConfig {
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            relay_url: "https://security-relay.onrender.com".to_string(),
-            secret_key: "d8a6f42b3e70d195f269a847bc83de9ef0a41d726b91a58c0df1bde7f4019e2c".to_string(),
+            relay_url: option_env!("RELAY_URL")
+                .unwrap_or("https://security-relay.onrender.com")
+                .to_string(),
+            secret_key: option_env!("RELAY_SECRET_KEY")
+                .unwrap_or("default_dev_secret_key")
+                .to_string(),
         }
     }
 }

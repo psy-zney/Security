@@ -354,6 +354,52 @@ app.post('/api/auth/google', async (req, res) => {
   }
 });
 
+// --- UNINSTALL OTP PROTECTION APIs ---
+const uninstallOtpStore = new Map(); // { deviceId: { otpCode, expiresAt } }
+
+app.post('/api/uninstall/request-otp', async (req, res) => {
+  try {
+    const { deviceId } = req.body;
+    if (!deviceId) {
+      return res.status(400).json({ error: 'Missing deviceId' });
+    }
+    const device = await Device.findOne({ deviceId });
+    if (!device) {
+      // Thiết bị chưa đăng ký trên Cloud thì cho phép gỡ
+      return res.json({ status: 'success', requiresOtp: false });
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 phút
+    uninstallOtpStore.set(deviceId, { otpCode, expiresAt });
+
+    io.emit('uninstall_otp_requested', {
+      deviceId,
+      otpCode,
+      message: `Cảnh báo: Có yêu cầu gỡ cài đặt trên PC [${deviceId}]. Mã xác nhận OTP: ${otpCode}`
+    });
+
+    console.log(`[OTP] Uninstall OTP generated for ${deviceId}: ${otpCode}`);
+    res.json({ status: 'success', requiresOtp: true });
+  } catch (err) {
+    console.error('Lỗi request OTP:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ nội bộ' });
+  }
+});
+
+app.post('/api/uninstall/verify-otp', (req, res) => {
+  const { deviceId, otpCode } = req.body;
+  const entry = uninstallOtpStore.get(deviceId);
+  if (!entry || Date.now() > entry.expiresAt) {
+    return res.status(400).json({ status: 'error', message: 'Mã OTP hết hạn hoặc không tồn tại' });
+  }
+  if (entry.otpCode !== otpCode) {
+    return res.status(400).json({ status: 'error', message: 'Mã OTP không chính xác' });
+  }
+  uninstallOtpStore.delete(deviceId);
+  res.json({ status: 'success', verified: true });
+});
+
 app.get('/', async (req, res) => {
   const memoryInfo = process.memoryUsage();
   try {

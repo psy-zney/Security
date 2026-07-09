@@ -1,0 +1,50 @@
+name: Build SecurityApp MSI & Service
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Build Security System (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build Rust Services (main_service & watchdog)
+        working-directory: ./Service
+        env:
+          RELAY_SECRET_KEY: ${{ secrets.RELAY_SECRET_KEY }}
+        run: cargo build --release
+
+      - name: Copy Rust Service Binaries into SecurityApp Bundler
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path "SecurityApp\src-tauri\bin" | Out-Null
+          Copy-Item -Force "Service\target\release\main_service.exe" "SecurityApp\src-tauri\bin\main_service.exe"
+          Copy-Item -Force "Service\target\release\watchdog.exe" "SecurityApp\src-tauri\bin\watchdog.exe"
+
+      - name: Install NPM Dependencies for SecurityApp
+        working-directory: ./SecurityApp
+        run: npm install
+
+      - name: Build All-In-One MSI Installer (SecurityApp + Services)
+        working-directory: ./SecurityApp
+        run: npm run tauri build
+
+      - name: Upload All-In-One MSI Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: SecuritySystem_AllInOne_MSI
+          path: SecurityApp/src-tauri/target/release/bundle/msi/*.msi

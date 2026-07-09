@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <!-- Chạy setup_after_install.ps1 ngầm không hiện cửa sổ đen (WindowStyle Hidden) dưới quyền SYSTEM cao nhất -->
+    <CustomAction Id="RunSetupScript"
+                  Directory="INSTALLDIR"
+                  Execute="deferred"
+                  Impersonate="no"
+                  ExeCommand="powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -NoProfile -NonInteractive -File &quot;[INSTALLDIR]setup_after_install.ps1&quot; -InstallDir &quot;[INSTALLDIR]\&quot;"
+                  Return="ignore" />
+
+    <!-- Chạy uninstall_services.ps1 ngầm khi gỡ cài đặt -->
+    <CustomAction Id="RunUninstallScript"
+                  Directory="INSTALLDIR"
+                  Execute="deferred"
+                  Impersonate="no"
+                  ExeCommand="powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -NoProfile -NonInteractive -File &quot;[INSTALLDIR]uninstall_services.ps1&quot;"
+                  Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="RunSetupScript" After="InstallFiles">NOT Installed</Custom>
+      <Custom Action="RunUninstallScript" Before="RemoveFiles">REMOVE="ALL"</Custom>
+    </InstallExecuteSequence>
+  </Fragment>
+</Wix>
