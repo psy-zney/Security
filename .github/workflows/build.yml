@@ -3,7 +3,16 @@ name: Build SecurityApp MSI & Service
 on:
   push:
     branches: [ "main", "master" ]
+    tags: [ "v*" ]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Tag name cho Release (ví dụ: v2.9.6). Nếu nhập sẽ tự động tạo GitHub Release.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
 
 jobs:
   build-windows:
@@ -43,8 +52,20 @@ jobs:
         working-directory: ./SecurityApp
         run: npm run tauri build
 
-      - name: Upload All-In-One MSI Installer
+      - name: Upload All-In-One MSI Installer (Workflow Artifact)
         uses: actions/upload-artifact@v4
         with:
           name: SecuritySystem_AllInOne_MSI
           path: SecurityApp/src-tauri/target/release/bundle/msi/*.msi
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.release_tag != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
+          name: Release ${{ github.event.inputs.release_tag || github.ref_name }}
+          draft: false
+          prerelease: false
+          files: SecurityApp/src-tauri/target/release/bundle/msi/*.msi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
