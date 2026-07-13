@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Tag name cho Release (ví dụ: v2.9.6). Nếu nhập sẽ tự động tạo GitHub Release.'
+        description: 'Tag name cho Release (ví dụ: v2.9.6). Mặc định là latest.'
         required: false
-        default: ''
+        default: 'latest'
 
 permissions:
   contents: write
@@ -59,11 +59,10 @@ jobs:
           path: SecurityApp/src-tauri/target/release/bundle/msi/*.msi
 
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.release_tag != ''
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
-          name: Release ${{ github.event.inputs.release_tag || github.ref_name }}
+          tag_name: ${{ github.event.inputs.release_tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'latest' }}
+          name: Release ${{ github.event.inputs.release_tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name) || 'Latest Build' }}
           draft: false
           prerelease: false
           files: SecurityApp/src-tauri/target/release/bundle/msi/*.msi
